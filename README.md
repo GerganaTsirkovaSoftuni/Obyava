@@ -474,7 +474,9 @@ supabase db push
 
 ## 📚 API Endpoints
 
-All backend APIs are exposed via Supabase Edge Functions. See `API_DOCUMENTATION.md` for complete reference.
+All backend APIs are exposed via Supabase Edge Functions. For complete endpoint specifications, request/response examples, error handling, and authentication details, see [API_DOCUMENTATION.md](./API_DOCUMENTATION.md).
+
+**📖 Full API Reference:** [API_DOCUMENTATION.md](https://github.com/GerganaTsirkovaSoftuni/Obyava/blob/main/API_DOCUMENTATION.md)
 
 ### Core Endpoints
 
