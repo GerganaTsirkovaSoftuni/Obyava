@@ -1,0 +1,44 @@
+.register-page {
+  min-height: calc(100vh - 120px);
+  padding: 2rem 0;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.register-page .card {
+  border: none;
+  border-radius: 12px;
+}
+
+.register-page .card-title {
+  color: #333;
+  font-weight: 600;
+}
+
+.register-page .btn-primary {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  border: none;
+  padding: 0.75rem;
+  font-weight: 500;
+  transition: transform 0.2s;
+}
+
+.register-page .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+}
+
+.register-page .form-control:focus {
+  border-color: #f5576c;
+  box-shadow: 0 0 0 0.2rem rgba(245, 87, 108, 0.25);
+}
+
+.register-page a {
+  color: #f5576c;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.register-page a:hover {
+  color: #d43f54;
+  text-decoration: underline;
+}

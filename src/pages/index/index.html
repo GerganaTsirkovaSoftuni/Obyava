@@ -1,4 +1,93 @@
-<section class="page">
-  <h1>Index Page</h1>
-  <p>Route: /</p>
+<section class="index-page">
+  <!-- Hero Section -->
+  <div class="hero-section">
+    <div class="container">
+      <div class="row">
+        <div class="col-12 text-center">
+          <h1 class="hero-title">
+            <i class="bi bi-megaphone me-2"></i>Добре дошли в Obyava
+          </h1>
+          <p class="hero-subtitle">Вашата платформа за обяви и търговия</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search and Filters -->
+  <div class="search-section">
+    <div class="container">
+      <div class="row">
+        <div class="col-12">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <form id="searchForm" class="row g-3">
+                <div class="col-md-6">
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input 
+                      type="text" 
+                      class="form-control" 
+                      id="searchQuery" 
+                      name="searchQuery"
+                      placeholder="Търсене по заглавие или описание..."
+                    >
+                  </div>
+                </div>
+                
+                <div class="col-md-3">
+                  <select class="form-select" id="categoryFilter" name="category">
+                    <option value="">Всички категории</option>
+                    <option value="electronics">Електроника</option>
+                    <option value="vehicles">Превозни средства</option>
+                    <option value="real-estate">Недвижими имоти</option>
+                    <option value="jobs">Обяви за работа</option>
+                    <option value="services">Услуги</option>
+                    <option value="other">Други</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-3">
+                  <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-2"></i>Търси
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Advertisements Grid -->
+  <div class="ads-section">
+    <div class="container">
+      <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+          <h2 class="section-title">
+            <i class="bi bi-grid-3x3-gap me-2"></i>Актуални обяви
+          </h2>
+          <button id="createAdBtn" class="btn btn-success d-none">
+            <i class="bi bi-plus-circle me-2"></i>Създай обява
+          </button>
+        </div>
+      </div>
+
+      <div id="adsGrid" class="row g-4">
+        <!-- Advertisement cards will be dynamically inserted here -->
+      </div>
+
+      <div id="emptyState" class="text-center py-5 d-none">
+        <i class="bi bi-inbox display-1 text-muted"></i>
+        <p class="text-muted mt-3">Няма намерени обяви</p>
+      </div>
+
+      <div id="loadingState" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Зареждане...</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
+

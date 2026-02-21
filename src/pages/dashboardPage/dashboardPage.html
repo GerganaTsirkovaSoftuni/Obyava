@@ -1,4 +1,192 @@
-<section class="page">
-  <h1>Dashboard Page</h1>
-  <p>Route: /dashboard</p>
+<section class="admin-dashboard-page">
+  <div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+          <h2 class="page-title mb-0">
+            <i class="bi bi-shield-check me-2 text-warning"></i>
+            Административен панел
+          </h2>
+          <div class="admin-badge">
+            <i class="bi bi-person-badge me-2"></i>Администратор
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+      <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card stat-card shadow-sm border-warning">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <p class="stat-label mb-1">Чакащи одобрение</p>
+                <h3 class="stat-value mb-0" id="pendingCount">0</h3>
+              </div>
+              <div class="stat-icon text-warning">
+                <i class="bi bi-clock-history"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card stat-card shadow-sm border-success">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <p class="stat-label mb-1">Публикувани</p>
+                <h3 class="stat-value mb-0" id="publishedCount">0</h3>
+              </div>
+              <div class="stat-icon text-success">
+                <i class="bi bi-check-circle"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card stat-card shadow-sm border-primary">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <p class="stat-label mb-1">Общо потребители</p>
+                <h3 class="stat-value mb-0" id="usersCount">0</h3>
+              </div>
+              <div class="stat-icon text-primary">
+                <i class="bi bi-people"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card stat-card shadow-sm border-info">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <p class="stat-label mb-1">Общо обяви</p>
+                <h3 class="stat-value mb-0" id="totalAdsCount">0</h3>
+              </div>
+              <div class="stat-icon text-info">
+                <i class="bi bi-megaphone"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+          <i class="bi bi-clock me-2"></i>Чакащи одобрение
+          <span class="badge bg-warning text-dark ms-2" id="pendingBadge">0</span>
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="all-ads-tab" data-bs-toggle="tab" data-bs-target="#all-ads" type="button" role="tab">
+          <i class="bi bi-grid me-2"></i>Всички обяви
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
+          <i class="bi bi-people me-2"></i>Потребители
+        </button>
+      </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- Pending Ads Tab -->
+      <div class="tab-pane fade show active" id="pending" role="tabpanel">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="card-title mb-0">Обяви за одобрение</h5>
+              <div class="input-group" style="width: 300px;">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" id="searchPending" placeholder="Търси...">
+              </div>
+            </div>
+            
+            <div id="pendingAdsList">
+              <div id="loadingPending" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Зареждане...</span>
+                </div>
+              </div>
+              
+              <div id="emptyPending" class="text-center py-5 d-none">
+                <i class="bi bi-inbox display-4 text-muted"></i>
+                <p class="text-muted mt-3">Няма обяви за одобрение</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- All Ads Tab -->
+      <div class="tab-pane fade" id="all-ads" role="tabpanel">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="card-title mb-0">Всички обяви</h5>
+              <div class="d-flex gap-2">
+                <select class="form-select" id="statusFilterAll" style="width: 200px;">
+                  <option value="">Всички статуси</option>
+                  <option value="draft">Чернови</option>
+                  <option value="pending">Чакащи</option>
+                  <option value="published">Публикувани</option>
+                  <option value="archived">Архивирани</option>
+                </select>
+                <div class="input-group" style="width: 300px;">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input type="text" class="form-control" id="searchAllAds" placeholder="Търси...">
+                </div>
+              </div>
+            </div>
+            
+            <div id="allAdsList">
+              <div id="loadingAllAds" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Зареждане...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Tab -->
+      <div class="tab-pane fade" id="users" role="tabpanel">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="card-title mb-0">Потребители</h5>
+              <div class="input-group" style="width: 300px;">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" id="searchUsers" placeholder="Търси...">
+              </div>
+            </div>
+            
+            <div id="usersList">
+              <div id="loadingUsers" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Зареждане...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
+

@@ -1,29 +1,93 @@
 .app-header {
-  border-bottom: 1px solid #e5e7eb;
-  background: #ffffff;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.header-content {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 16px;
+.navbar {
+  padding: 0.75rem 0;
+}
+
+.navbar-brand {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #667eea;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  transition: all 0.2s;
 }
 
-.brand-title {
-  margin: 0;
-  font-size: 1.25rem;
+.navbar-brand:hover {
+  color: #764ba2;
+  transform: scale(1.05);
 }
 
-.header-nav {
-  display: flex;
-  gap: 16px;
+.brand-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.header-nav a {
-  color: #1f2937;
-  text-decoration: none;
+.nav-link {
+  color: #4b5563;
   font-weight: 500;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s;
+  border-radius: 8px;
+  margin: 0 0.25rem;
+}
+
+.nav-link:hover {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.nav-link.btn-register {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+}
+
+.nav-link.btn-register:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+#logoutBtn {
+  border: none;
+  background: transparent;
+  color: #ef4444;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+}
+
+#logoutBtn:hover {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.navbar-toggler {
+  border: 2px solid #667eea;
+}
+
+.navbar-toggler:focus {
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+@media (max-width: 991px) {
+  .nav-link {
+    padding: 0.75rem 1rem;
+    margin: 0.25rem 0;
+  }
+  
+  .navbar-nav {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+  }
 }

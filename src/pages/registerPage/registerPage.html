@@ -1,0 +1,90 @@
+<section class="register-page">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-md-6 col-lg-5">
+        <div class="card shadow-sm mt-5">
+          <div class="card-body p-4">
+            <h2 class="card-title text-center mb-4">
+              <i class="bi bi-person-plus me-2"></i>Регистрация
+            </h2>
+            
+            <form id="registerForm">
+              <div class="mb-3">
+                <label for="fullName" class="form-label">Име и фамилия</label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  id="fullName" 
+                  name="fullName"
+                  placeholder="Иван Иванов"
+                  required
+                >
+              </div>
+
+              <div class="mb-3">
+                <label for="phone" class="form-label">Телефон</label>
+                <input 
+                  type="tel" 
+                  class="form-control" 
+                  id="phone" 
+                  name="phone"
+                  placeholder="+359 888 123 456"
+                  required
+                >
+              </div>
+              
+              <div class="mb-3">
+                <label for="email" class="form-label">Имейл</label>
+                <input 
+                  type="email" 
+                  class="form-control" 
+                  id="email" 
+                  name="email"
+                  placeholder="example@email.com"
+                  required
+                >
+              </div>
+              
+              <div class="mb-3">
+                <label for="password" class="form-label">Парола</label>
+                <input 
+                  type="password" 
+                  class="form-control" 
+                  id="password" 
+                  name="password"
+                  placeholder="••••••••"
+                  minlength="6"
+                  required
+                >
+                <div class="form-text">Минимум 6 символа</div>
+              </div>
+
+              <div class="mb-3">
+                <label for="confirmPassword" class="form-label">Потвърди парола</label>
+                <input 
+                  type="password" 
+                  class="form-control" 
+                  id="confirmPassword" 
+                  name="confirmPassword"
+                  placeholder="••••••••"
+                  required
+                >
+              </div>
+              
+              <div id="errorMessage" class="alert alert-danger d-none" role="alert"></div>
+              <div id="successMessage" class="alert alert-success d-none" role="alert"></div>
+              
+              <button type="submit" class="btn btn-primary w-100 mb-3">
+                <i class="bi bi-person-plus me-2"></i>Регистрирай се
+              </button>
+              
+              <div class="text-center">
+                <p class="mb-0">Вече имате акаунт? <a href="/login" data-link>Влезте</a></p>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
