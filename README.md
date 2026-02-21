@@ -525,7 +525,7 @@ This project is licensed under the MIT License - see LICENSE file for details.
 ## 👥 Team
 
 - **Developer**: Gergana
-- **Project**: SoftUni Marketplace Challenge
+- **Project**: Obyava (SoftUni Challenge)
 
 ---
 
