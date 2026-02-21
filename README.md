@@ -4,6 +4,8 @@
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+🌐 **Live Demo**: [https://melodious-trifle-b87c15.netlify.app](https://melodious-trifle-b87c15.netlify.app)
+
 ## 📋 Project Description
 
 **Obyava** is a modern, full-stack marketplace application built to facilitate peer-to-peer buying and selling of classified advertisements. It's inspired by platforms like OLX, providing users with an intuitive interface to post, manage, and browse advertisements across multiple product categories.
@@ -305,13 +307,15 @@ npm --version
 
 ### Access Test Accounts
 
-**Regular Users:**
+**Admin Account:**
+- Email: `admin@gmail.com` | Password: `Test1234`
+
+**Regular User Account:**
+- Email: `user@gmail.com` | Password: `Test1234`
+
+**Additional Test Users:**
 - Email: `johndoe@gmail.com` | Password: generated during setup
 - Email: `maria@gmail.com` | Password: generated during setup
-- Email: `user@gmail.com` | Password: generated during setup
-
-**Admin Account:**
-- Email: `admin@gmail.com` | Password: `admin1234`
 
 ---
 
