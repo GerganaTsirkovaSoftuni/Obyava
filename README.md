@@ -317,6 +317,8 @@ npm --version
 - Email: `johndoe@gmail.com` | Password: generated during setup
 - Email: `maria@gmail.com` | Password: generated during setup
 
+**Link to the project**
+https://melodious-trifle-b87c15.netlify.app
 ---
 
 ## 📁 Project Structure
