@@ -6,10 +6,10 @@
         <div class="d-flex justify-content-between align-items-center">
           <h2 class="page-title mb-0">
             <i class="bi bi-shield-check me-2 text-warning"></i>
-            Административен панел
+            Administrative Dashboard
           </h2>
           <div class="admin-badge">
-            <i class="bi bi-person-badge me-2"></i>Администратор
+            <i class="bi bi-person-badge me-2"></i>Administrator
           </div>
         </div>
       </div>
@@ -22,7 +22,7 @@
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center">
               <div>
-                <p class="stat-label mb-1">Чакащи одобрение</p>
+                <p class="stat-label mb-1">Pending Approval</p>
                 <h3 class="stat-value mb-0" id="pendingCount">0</h3>
               </div>
               <div class="stat-icon text-warning">
@@ -38,7 +38,7 @@
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center">
               <div>
-                <p class="stat-label mb-1">Публикувани</p>
+                <p class="stat-label mb-1">Published</p>
                 <h3 class="stat-value mb-0" id="publishedCount">0</h3>
               </div>
               <div class="stat-icon text-success">
@@ -54,7 +54,7 @@
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center">
               <div>
-                <p class="stat-label mb-1">Общо потребители</p>
+                <p class="stat-label mb-1">Total Users</p>
                 <h3 class="stat-value mb-0" id="usersCount">0</h3>
               </div>
               <div class="stat-icon text-primary">
@@ -70,7 +70,7 @@
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center">
               <div>
-                <p class="stat-label mb-1">Общо обяви</p>
+                <p class="stat-label mb-1">Total Ads</p>
                 <h3 class="stat-value mb-0" id="totalAdsCount">0</h3>
               </div>
               <div class="stat-icon text-info">
@@ -86,18 +86,18 @@
     <ul class="nav nav-tabs mb-4" role="tablist">
       <li class="nav-item" role="presentation">
         <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
-          <i class="bi bi-clock me-2"></i>Чакащи одобрение
+          <i class="bi bi-clock me-2"></i>Pending Approval
           <span class="badge bg-warning text-dark ms-2" id="pendingBadge">0</span>
         </button>
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="all-ads-tab" data-bs-toggle="tab" data-bs-target="#all-ads" type="button" role="tab">
-          <i class="bi bi-grid me-2"></i>Всички обяви
+          <i class="bi bi-grid me-2"></i>All Ads
         </button>
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab">
-          <i class="bi bi-people me-2"></i>Потребители
+          <i class="bi bi-people me-2"></i>Users
         </button>
       </li>
     </ul>
@@ -109,23 +109,23 @@
         <div class="card shadow-sm">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="card-title mb-0">Обяви за одобрение</h5>
+              <h5 class="card-title mb-0">Advertisements for Review</h5>
               <div class="input-group" style="width: 300px;">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control" id="searchPending" placeholder="Търси...">
+                <input type="text" class="form-control" id="searchPending" placeholder="Search...">
               </div>
             </div>
             
             <div id="pendingAdsList">
               <div id="loadingPending" class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
-                  <span class="visually-hidden">Зареждане...</span>
+                  <span class="visually-hidden">Loading...</span>
                 </div>
               </div>
               
               <div id="emptyPending" class="text-center py-5 d-none">
                 <i class="bi bi-inbox display-4 text-muted"></i>
-                <p class="text-muted mt-3">Няма обяви за одобрение</p>
+                <p class="text-muted mt-3">No ads pending approval</p>
               </div>
             </div>
           </div>
@@ -137,18 +137,18 @@
         <div class="card shadow-sm">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="card-title mb-0">Всички обяви</h5>
+              <h5 class="card-title mb-0">All Advertisements</h5>
               <div class="d-flex gap-2">
                 <select class="form-select" id="statusFilterAll" style="width: 200px;">
-                  <option value="">Всички статуси</option>
-                  <option value="draft">Чернови</option>
-                  <option value="pending">Чакащи</option>
-                  <option value="published">Публикувани</option>
-                  <option value="archived">Архивирани</option>
+                  <option value="">All statuses</option>
+                  <option value="Draft">Draft</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Published">Published</option>
+                  <option value="Archived">Archived</option>
                 </select>
                 <div class="input-group" style="width: 300px;">
                   <span class="input-group-text"><i class="bi bi-search"></i></span>
-                  <input type="text" class="form-control" id="searchAllAds" placeholder="Търси...">
+                  <input type="text" class="form-control" id="searchAllAds" placeholder="Search...">
                 </div>
               </div>
             </div>
@@ -156,7 +156,7 @@
             <div id="allAdsList">
               <div id="loadingAllAds" class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
-                  <span class="visually-hidden">Зареждане...</span>
+                  <span class="visually-hidden">Loading...</span>
                 </div>
               </div>
             </div>
@@ -169,17 +169,17 @@
         <div class="card shadow-sm">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="card-title mb-0">Потребители</h5>
+              <h5 class="card-title mb-0">Users</h5>
               <div class="input-group" style="width: 300px;">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control" id="searchUsers" placeholder="Търси...">
+                <input type="text" class="form-control" id="searchUsers" placeholder="Search...">
               </div>
             </div>
             
             <div id="usersList">
               <div id="loadingUsers" class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
-                  <span class="visually-hidden">Зареждане...</span>
+                  <span class="visually-hidden">Loading...</span>
                 </div>
               </div>
             </div>

@@ -5,64 +5,58 @@
         <div class="card shadow-sm">
           <div class="card-body p-4">
             <h2 class="card-title mb-4" id="pageTitle">
-              <i class="bi bi-plus-circle me-2"></i>Създай обява
+              <i class="bi bi-plus-circle me-2"></i>Create Advertisement
             </h2>
 
             <form id="adForm">
               <!-- Title -->
               <div class="mb-4">
                 <label for="title" class="form-label fw-bold">
-                  Заглавие <span class="text-danger">*</span>
+                  Title <span class="text-danger">*</span>
                 </label>
                 <input 
                   type="text" 
                   class="form-control form-control-lg" 
                   id="title" 
                   name="title"
-                  placeholder="Въведете привлекателно заглавие"
+                  placeholder="Enter a clear, catchy title"
                   maxlength="100"
                   required
                 >
-                <div class="form-text">Максимум 100 символа</div>
+                <div class="form-text">Maximum 100 characters</div>
               </div>
 
               <!-- Description -->
               <div class="mb-4">
                 <label for="description" class="form-label fw-bold">
-                  Описание <span class="text-danger">*</span>
+                  Description <span class="text-danger">*</span>
                 </label>
                 <textarea 
                   class="form-control" 
                   id="description" 
                   name="description"
                   rows="6"
-                  placeholder="Опишете подробно вашата обява..."
+                  placeholder="Describe your listing in detail..."
                   maxlength="2000"
                   required
                 ></textarea>
-                <div class="form-text">Максимум 2000 символа</div>
+                <div class="form-text">Maximum 2000 characters</div>
               </div>
 
               <!-- Category -->
               <div class="mb-4">
                 <label for="category" class="form-label fw-bold">
-                  Категория <span class="text-danger">*</span>
+                  Category <span class="text-danger">*</span>
                 </label>
                 <select class="form-select form-select-lg" id="category" name="category" required>
-                  <option value="">Изберете категория</option>
-                  <option value="electronics">Електроника</option>
-                  <option value="vehicles">Превозни средства</option>
-                  <option value="real-estate">Недвижими имоти</option>
-                  <option value="jobs">Обяви за работа</option>
-                  <option value="services">Услуги</option>
-                  <option value="other">Други</option>
+                  <option value="">Select category</option>
                 </select>
               </div>
 
               <!-- Price -->
               <div class="mb-4">
                 <label for="price" class="form-label fw-bold">
-                  Цена (лв.)
+                  Price (EUR)
                 </label>
                 <input 
                   type="number" 
@@ -73,20 +67,20 @@
                   min="0"
                   step="0.01"
                 >
-                <div class="form-text">Оставете празно за "По договаряне"</div>
+                <div class="form-text">Leave empty for "Negotiable"</div>
               </div>
 
               <!-- Location -->
               <div class="mb-4">
                 <label for="location" class="form-label fw-bold">
-                  Локация <span class="text-danger">*</span>
+                  Location <span class="text-danger">*</span>
                 </label>
                 <input 
                   type="text" 
                   class="form-control form-control-lg" 
                   id="location" 
                   name="location"
-                  placeholder="Град, квартал"
+                  placeholder="City, area"
                   required
                 >
               </div>
@@ -94,7 +88,7 @@
               <!-- Images -->
               <div class="mb-4">
                 <label for="images" class="form-label fw-bold">
-                  Снимки
+                  Images
                 </label>
                 <input 
                   type="file" 
@@ -104,14 +98,14 @@
                   accept="image/*"
                   multiple
                 >
-                <div class="form-text">Можете да качите до 5 снимки (макс. 5MB всяка)</div>
+                <div class="form-text">You can upload up to 5 images (max 5MB each)</div>
                 <div id="imagePreview" class="image-preview-container mt-3"></div>
               </div>
 
               <!-- Contact Phone -->
               <div class="mb-4">
                 <label for="phone" class="form-label fw-bold">
-                  Телефон за контакт <span class="text-danger">*</span>
+                  Contact Phone <span class="text-danger">*</span>
                 </label>
                 <input 
                   type="tel" 
@@ -132,13 +126,13 @@
               <!-- Action Buttons -->
               <div class="d-flex gap-2 justify-content-end">
                 <button type="button" id="cancelBtn" class="btn btn-outline-secondary btn-lg">
-                  <i class="bi bi-x-circle me-2"></i>Отказ
+                  <i class="bi bi-x-circle me-2"></i>Cancel
                 </button>
                 <button type="submit" id="saveDraftBtn" class="btn btn-outline-primary btn-lg" data-action="draft">
-                  <i class="bi bi-save me-2"></i>Запази като чернова
+                  <i class="bi bi-save me-2"></i>Save as Draft
                 </button>
                 <button type="submit" id="submitBtn" class="btn btn-primary btn-lg" data-action="submit">
-                  <i class="bi bi-send me-2"></i>Изпрати за одобрение
+                  <i class="bi bi-send me-2"></i>Submit for Review
                 </button>
               </div>
             </form>

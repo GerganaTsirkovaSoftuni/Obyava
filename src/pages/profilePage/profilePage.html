@@ -12,13 +12,13 @@
                 </div>
               </div>
               <div class="col">
-                <h2 class="profile-name mb-2" id="userName">Име на потребител</h2>
+                <h2 class="profile-name mb-2" id="userName">User Name</h2>
                 <p class="text-muted mb-2" id="userEmail">email@example.com</p>
                 <p class="text-muted mb-0" id="userPhone">+359 888 123 456</p>
               </div>
               <div class="col-auto">
                 <button id="editProfileBtn" class="btn btn-outline-primary">
-                  <i class="bi bi-pencil me-2"></i>Редактирай профил
+                  <i class="bi bi-pencil me-2"></i>Edit Profile
                 </button>
               </div>
             </div>
@@ -36,7 +36,7 @@
               <i class="bi bi-megaphone"></i>
             </div>
             <h3 class="stat-value" id="totalAds">0</h3>
-            <p class="stat-label mb-0">Общо обяви</p>
+            <p class="stat-label mb-0">Total Ads</p>
           </div>
         </div>
       </div>
@@ -47,7 +47,7 @@
               <i class="bi bi-check-circle"></i>
             </div>
             <h3 class="stat-value" id="publishedAds">0</h3>
-            <p class="stat-label mb-0">Публикувани</p>
+            <p class="stat-label mb-0">Published</p>
           </div>
         </div>
       </div>
@@ -58,7 +58,7 @@
               <i class="bi bi-clock"></i>
             </div>
             <h3 class="stat-value" id="pendingAds">0</h3>
-            <p class="stat-label mb-0">В изчакване</p>
+            <p class="stat-label mb-0">Pending</p>
           </div>
         </div>
       </div>
@@ -69,7 +69,7 @@
               <i class="bi bi-file-earmark"></i>
             </div>
             <h3 class="stat-value" id="draftAds">0</h3>
-            <p class="stat-label mb-0">Чернови</p>
+            <p class="stat-label mb-0">Drafts</p>
           </div>
         </div>
       </div>
@@ -79,12 +79,12 @@
     <ul class="nav nav-tabs mb-4" id="profileTabs" role="tablist">
       <li class="nav-item" role="presentation">
         <button class="nav-link active" id="my-ads-tab" data-bs-toggle="tab" data-bs-target="#my-ads" type="button" role="tab">
-          <i class="bi bi-grid me-2"></i>Моите обяви
+          <i class="bi bi-grid me-2"></i>My Ads
         </button>
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab">
-          <i class="bi bi-gear me-2"></i>Настройки
+          <i class="bi bi-gear me-2"></i>Settings
         </button>
       </li>
     </ul>
@@ -97,23 +97,23 @@
         <div class="mb-4">
           <div class="btn-group" role="group">
             <input type="radio" class="btn-check" name="statusFilter" id="filter-all" value="" checked>
-            <label class="btn btn-outline-primary" for="filter-all">Всички</label>
+            <label class="btn btn-outline-primary" for="filter-all">All</label>
             
-            <input type="radio" class="btn-check" name="statusFilter" id="filter-published" value="published">
-            <label class="btn btn-outline-primary" for="filter-published">Публикувани</label>
+            <input type="radio" class="btn-check" name="statusFilter" id="filter-published" value="Published">
+            <label class="btn btn-outline-primary" for="filter-published">Published</label>
             
-            <input type="radio" class="btn-check" name="statusFilter" id="filter-pending" value="pending">
-            <label class="btn btn-outline-primary" for="filter-pending">В изчакване</label>
+            <input type="radio" class="btn-check" name="statusFilter" id="filter-pending" value="Pending">
+            <label class="btn btn-outline-primary" for="filter-pending">Pending</label>
             
-            <input type="radio" class="btn-check" name="statusFilter" id="filter-draft" value="draft">
-            <label class="btn btn-outline-primary" for="filter-draft">Чернови</label>
+            <input type="radio" class="btn-check" name="statusFilter" id="filter-draft" value="Draft">
+            <label class="btn btn-outline-primary" for="filter-draft">Drafts</label>
             
-            <input type="radio" class="btn-check" name="statusFilter" id="filter-archived" value="archived">
-            <label class="btn btn-outline-primary" for="filter-archived">Архивирани</label>
+            <input type="radio" class="btn-check" name="statusFilter" id="filter-archived" value="Archived">
+            <label class="btn btn-outline-primary" for="filter-archived">Archived</label>
           </div>
           
           <button id="createNewAdBtn" class="btn btn-success float-end">
-            <i class="bi bi-plus-circle me-2"></i>Нова обява
+            <i class="bi bi-plus-circle me-2"></i>New Ad
           </button>
         </div>
 
@@ -121,13 +121,13 @@
         <div id="userAdsList">
           <div id="loadingAds" class="text-center py-5">
             <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Зареждане...</span>
+              <span class="visually-hidden">Loading...</span>
             </div>
           </div>
           
           <div id="emptyAds" class="text-center py-5 d-none">
             <i class="bi bi-inbox display-1 text-muted"></i>
-            <p class="text-muted mt-3">Няма намерени обяви</p>
+            <p class="text-muted mt-3">No ads found</p>
           </div>
         </div>
       </div>
@@ -138,26 +138,26 @@
           <div class="col-lg-8">
             <div class="card shadow-sm mb-4">
               <div class="card-body">
-                <h5 class="card-title mb-3">Лични данни</h5>
+                <h5 class="card-title mb-3">Personal Information</h5>
                 <form id="updateProfileForm">
                   <div class="mb-3">
-                    <label for="updateFullName" class="form-label">Име и фамилия</label>
+                    <label for="updateFullName" class="form-label">Full Name</label>
                     <input type="text" class="form-control" id="updateFullName" name="fullName">
                   </div>
                   
                   <div class="mb-3">
-                    <label for="updatePhone" class="form-label">Телефон</label>
+                    <label for="updatePhone" class="form-label">Phone</label>
                     <input type="tel" class="form-control" id="updatePhone" name="phone">
                   </div>
                   
                   <div class="mb-3">
-                    <label for="updateEmail" class="form-label">Имейл</label>
+                    <label for="updateEmail" class="form-label">Email</label>
                     <input type="email" class="form-control" id="updateEmail" name="email" disabled>
-                    <div class="form-text">Имейлът не може да бъде променен</div>
+                    <div class="form-text">Email cannot be changed</div>
                   </div>
                   
                   <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-save me-2"></i>Запази промените
+                    <i class="bi bi-save me-2"></i>Save Changes
                   </button>
                 </form>
               </div>
@@ -165,25 +165,25 @@
 
             <div class="card shadow-sm mb-4">
               <div class="card-body">
-                <h5 class="card-title mb-3">Смяна на парола</h5>
+                <h5 class="card-title mb-3">Change Password</h5>
                 <form id="changePasswordForm">
                   <div class="mb-3">
-                    <label for="currentPassword" class="form-label">Текуща парола</label>
+                    <label for="currentPassword" class="form-label">Current Password</label>
                     <input type="password" class="form-control" id="currentPassword" name="currentPassword">
                   </div>
                   
                   <div class="mb-3">
-                    <label for="newPassword" class="form-label">Нова парола</label>
+                    <label for="newPassword" class="form-label">New Password</label>
                     <input type="password" class="form-control" id="newPassword" name="newPassword" minlength="6">
                   </div>
                   
                   <div class="mb-3">
-                    <label for="confirmNewPassword" class="form-label">Потвърди нова парола</label>
+                    <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
                     <input type="password" class="form-control" id="confirmNewPassword" name="confirmNewPassword">
                   </div>
                   
                   <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-key me-2"></i>Смени паролата
+                    <i class="bi bi-key me-2"></i>Change Password
                   </button>
                 </form>
               </div>
@@ -191,10 +191,10 @@
 
             <div class="card shadow-sm border-danger">
               <div class="card-body">
-                <h5 class="card-title text-danger mb-3">Опасна зона</h5>
-                <p class="text-muted">Изтриването на профила е необратима операция. Всички ваши обяви също ще бъдат изтрити.</p>
+                <h5 class="card-title text-danger mb-3">Danger Zone</h5>
+                <p class="text-muted">Deleting your profile is irreversible. All your advertisements will also be deleted.</p>
                 <button id="deleteAccountBtn" class="btn btn-danger">
-                  <i class="bi bi-trash me-2"></i>Изтрий профил
+                  <i class="bi bi-trash me-2"></i>Delete Profile
                 </button>
               </div>
             </div>

@@ -1,7 +1,10 @@
 import './index.css';
 import template from './index.html?raw';
-import { getPublishedAds } from '../../services/adsService.js';
+import { getCategories, getPublishedAds } from '../../services/adsService.js';
 import { getSession } from '../../services/authService.js';
+
+const INITIAL_VISIBLE_ADS = 16;
+const LOAD_MORE_COUNT = 8;
 
 function createAdCard(ad) {
   const col = document.createElement('div');
@@ -12,10 +15,10 @@ function createAdCard(ad) {
       <img src="${ad.image_url || '/placeholder-image.png'}" class="ad-card-img" alt="${ad.title}">
       <div class="card-body">
         <h5 class="ad-card-title">${ad.title}</h5>
-        <p class="ad-card-price">${ad.price ? ad.price + ' лв.' : 'По договаряне'}</p>
-        <span class="ad-card-category">${ad.category}</span>
+        <p class="ad-card-price">${ad.price ? ad.price + ' EUR' : 'Negotiable'}</p>
+        <span class="ad-card-category">Category: ${ad.category}</span>
         <div class="ad-card-footer">
-          <i class="bi bi-geo-alt me-1"></i>${ad.location || 'Неизвестна локация'}
+          <i class="bi bi-geo-alt me-1"></i>${ad.location || 'Unknown location'}
         </div>
       </div>
     </div>
@@ -33,7 +36,7 @@ async function loadAdvertisements(searchQuery = '', categoryId = '') {
     const ads = await getPublishedAds({
       searchQuery,
       category_id: categoryId,
-      limit: 50
+      limit: 200
     });
 
     // Format data for display
@@ -42,7 +45,7 @@ async function loadAdvertisements(searchQuery = '', categoryId = '') {
       title: ad.title,
       description: ad.description,
       price: ad.price,
-      category: ad.categories?.name || 'Неизвестна категория',
+      category: ad.categories?.name || 'Unknown category',
       location: ad.location,
       image_url: ad.advertisement_images?.[0]?.file_path || null,
       status: ad.status
@@ -50,6 +53,25 @@ async function loadAdvertisements(searchQuery = '', categoryId = '') {
   } catch (error) {
     console.error('Error loading advertisements:', error);
     return [];
+  }
+}
+
+async function populateCategories(section) {
+  const categoryFilter = section.querySelector('#categoryFilter');
+
+  try {
+    const categories = await getCategories();
+
+    categoryFilter.innerHTML = '<option value="">All categories</option>';
+
+    categories.forEach((category) => {
+      const option = document.createElement('option');
+      option.value = String(category.id);
+      option.textContent = category.name;
+      categoryFilter.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Error loading categories:', error);
   }
 }
 
@@ -63,6 +85,11 @@ export function renderIndexPage({ navigate }) {
   const emptyState = section.querySelector('#emptyState');
   const loadingState = section.querySelector('#loadingState');
   const createAdBtn = section.querySelector('#createAdBtn');
+  const paginationWrap = section.querySelector('#paginationWrap');
+  const loadMoreBtn = section.querySelector('#loadMoreBtn');
+
+  let allAds = [];
+  let visibleAdsCount = INITIAL_VISIBLE_ADS;
 
   // Check if user is logged in
   getSession().then(({ session }) => {
@@ -72,38 +99,62 @@ export function renderIndexPage({ navigate }) {
     }
   });
 
+  populateCategories(section);
+
+  function renderAds() {
+    adsGrid.innerHTML = '';
+
+    if (allAds.length === 0) {
+      emptyState.classList.remove('d-none');
+      paginationWrap.classList.add('d-none');
+      return;
+    }
+
+    emptyState.classList.add('d-none');
+
+    allAds.slice(0, visibleAdsCount).forEach(ad => {
+      const adCard = createAdCard(ad);
+      adsGrid.appendChild(adCard);
+    });
+
+    if (allAds.length > INITIAL_VISIBLE_ADS && visibleAdsCount < allAds.length) {
+      paginationWrap.classList.remove('d-none');
+    } else {
+      paginationWrap.classList.add('d-none');
+    }
+  }
+
   async function displayAds(searchQuery = '', category = '') {
     try {
       loadingState.classList.remove('d-none');
       emptyState.classList.add('d-none');
       adsGrid.innerHTML = '';
+      paginationWrap.classList.add('d-none');
 
-      const ads = await loadAdvertisements(searchQuery, category);
+      allAds = await loadAdvertisements(searchQuery, category);
+      visibleAdsCount = INITIAL_VISIBLE_ADS;
 
       loadingState.classList.add('d-none');
-
-      if (ads.length === 0) {
-        emptyState.classList.remove('d-none');
-        return;
-      }
-
-      ads.forEach(ad => {
-        const adCard = createAdCard(ad);
-        adsGrid.appendChild(adCard);
-      });
+      renderAds();
 
     } catch (error) {
       console.error('Error loading advertisements:', error);
       loadingState.classList.add('d-none');
       emptyState.classList.remove('d-none');
+      paginationWrap.classList.add('d-none');
     }
   }
+
+  loadMoreBtn.addEventListener('click', () => {
+    visibleAdsCount += LOAD_MORE_COUNT;
+    renderAds();
+  });
 
   searchForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const formData = new FormData(searchForm);
-    const searchQuery = formData.get('searchQuery');
-    const category = formData.get('category');
+    const searchQuery = formData.get('searchQuery').trim();
+    const category = formData.get('category').trim();
     displayAds(searchQuery, category);
   });
 

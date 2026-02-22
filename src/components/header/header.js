@@ -1,6 +1,7 @@
 import './header.css';
 import template from './header.html?raw';
-import { getSession, isUserAdmin, signOut, onAuthStateChange } from '../../services/authService.js';
+import { getCurrentUser, isUserAdmin, signOut, onAuthStateChange } from '../../services/authService.js';
+import { confirm, alert } from '../../services/modalService.js';
 
 export function createHeader(navigate) {
   const wrapper = document.createElement('div');
@@ -12,6 +13,9 @@ export function createHeader(navigate) {
     link.addEventListener('click', (event) => {
       event.preventDefault();
       navigate(link.getAttribute('href'));
+      
+      // Close mobile navbar after navigation
+      closeNavbar(element);
     });
   });
 
@@ -19,20 +23,24 @@ export function createHeader(navigate) {
   const logoutBtn = element.querySelector('#logoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
-      if (confirm('Сигурни ли сте, че искате да излезете?')) {
+      const confirmed = await confirm('Are you sure you want to log out?', 'Log Out');
+      if (confirmed) {
         try {
           await signOut();
           
           // Update UI
           updateHeaderForAuthState(element, false, false);
           
+          // Close mobile navbar
+          closeNavbar(element);
+          
           // Navigate to home
           navigate('/');
           
-          alert('Излязохте успешно');
+          await alert('Logged out successfully', 'Success', 'success');
         } catch (error) {
           console.error('Error logging out:', error);
-          alert('Грешка при излизане: ' + error.message);
+          await alert('Logout error: ' + error.message, 'Error', 'error');
         }
       }
     });
@@ -42,13 +50,20 @@ export function createHeader(navigate) {
   checkAuthState(element);
   
   // Setup auth state listener for real-time updates
-  onAuthStateChange((event, session) => {
-    const isLoggedIn = !!session;
-    if (isLoggedIn) {
-      isUserAdmin().then(isAdmin => {
-        updateHeaderForAuthState(element, true, isAdmin);
-      });
-    } else {
+  onAuthStateChange(async (event, session) => {
+    try {
+      if (session) {
+        const { user } = await getCurrentUser();
+        if (user) {
+          const { isAdmin } = await isUserAdmin(user.id);
+          updateHeaderForAuthState(element, true, isAdmin);
+          return;
+        }
+      }
+
+      updateHeaderForAuthState(element, false, false);
+    } catch (error) {
+      console.error('Error handling auth state change:', error);
       updateHeaderForAuthState(element, false, false);
     }
   });
@@ -60,6 +75,12 @@ function updateHeaderForAuthState(headerElement, isLoggedIn, isAdmin = false) {
   const loggedOutItems = headerElement.querySelectorAll('.logged-out-only');
   const loggedInItems = headerElement.querySelectorAll('.logged-in-only');
   const adminItems = headerElement.querySelectorAll('.admin-only');
+  const navbarNav = headerElement.querySelector('.navbar-nav');
+
+  // Remove auth loading state
+  if (navbarNav) {
+    navbarNav.classList.remove('auth-loading');
+  }
 
   if (isLoggedIn) {
     loggedOutItems.forEach(item => item.classList.add('d-none'));
@@ -79,17 +100,25 @@ function updateHeaderForAuthState(headerElement, isLoggedIn, isAdmin = false) {
 
 async function checkAuthState(headerElement) {
   try {
-    const { session } = await getSession();
-    const isLoggedIn = !!session;
+    const { user } = await getCurrentUser();
+    const isLoggedIn = !!user;
     let isAdmin = false;
     
     if (isLoggedIn) {
-      isAdmin = await isUserAdmin();
+      const { isAdmin: adminStatus } = await isUserAdmin(user.id);
+      isAdmin = adminStatus;
     }
     
     updateHeaderForAuthState(headerElement, isLoggedIn, isAdmin);
   } catch (error) {
     console.error('Error checking auth state:', error);
     updateHeaderForAuthState(headerElement, false, false);
+  }
+}
+
+function closeNavbar(headerElement) {
+  const navbarCollapse = headerElement.querySelector('.navbar-collapse');
+  if (navbarCollapse && navbarCollapse.classList.contains('show')) {
+    navbarCollapse.classList.remove('show');
   }
 }

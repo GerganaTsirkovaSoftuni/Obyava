@@ -254,7 +254,7 @@ on conflict (advertisement_uuid) do nothing;
 -- 7) Seed advertisement images
 -- =============================
 -- For each advertisement, create 1–3 related images with placeholder URLs.
--- Image sources: unsplash.com free images.
+-- Image source: picsum.photos placeholders.
 
 insert into public.advertisement_images (uuid, advertisement_uuid, position, file_path, created_at)
 with ad_list as (
@@ -270,11 +270,11 @@ image_specs as (
     img.url
   from ad_list a
   cross join lateral (
-    select 0 as position, 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=500&h=500&fit=crop'::text as url
+              select 0 as position, 'https://picsum.photos/seed/ad-image-1/600/400'::text as url
     union all
-    select 1, 'https://images.unsplash.com/photo-1589308707332-e0a1f65c1ba6?w=500&h=500&fit=crop'
+              select 1, 'https://picsum.photos/seed/ad-image-2/600/400'
     union all
-    select 2, 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=500&fit=crop'
+              select 2, 'https://picsum.photos/seed/ad-image-3/600/400'
   ) img(position, url)
   where img.position < (1 + (((a.ad_seq - 1) % 3)))  -- Assign 1–3 images per ad
 )

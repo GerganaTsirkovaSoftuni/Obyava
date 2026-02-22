@@ -1,0 +1,33 @@
+<section class="user-ads-page">
+  <div class="container py-4">
+    <div class="row mb-4">
+      <div class="col-12 d-flex justify-content-between align-items-center">
+        <h2 class="section-title mb-0">
+          <i class="bi bi-person-lines-fill me-2"></i><span id="sellerAdsTitle">Published ads</span>
+        </h2>
+        <a href="/" id="homeButton" class="btn" data-link>
+          <i class="bi bi-house-door me-2"></i>Home
+        </a>
+      </div>
+    </div>
+
+    <div id="sellerAdsGrid" class="row g-4"></div>
+
+    <div id="sellerAdsPaginationWrap" class="text-center mt-4 d-none">
+      <button id="sellerAdsLoadMoreBtn" class="btn btn-outline-primary px-4">
+        Load 8 More
+      </button>
+    </div>
+
+    <div id="sellerAdsEmpty" class="text-center py-5 d-none">
+      <i class="bi bi-inbox display-1 text-muted"></i>
+      <p class="text-muted mt-3">No published ads from this user</p>
+    </div>
+
+    <div id="sellerAdsLoading" class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  </div>
+</section>

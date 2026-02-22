@@ -10,6 +10,50 @@
   padding: 0.75rem 0;
 }
 
+/* Override Bootstrap navbar-light defaults AND global link styles */
+a.nav-link,
+.nav-link[href],
+.navbar a.nav-link,
+.navbar-light .nav-link {
+  background: none !important;
+  -webkit-text-fill-color: unset !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  color: #4b5563 !important;
+  text-decoration: none !important;
+}
+
+.navbar-light .nav-link {
+  color: #4b5563 !important;
+}
+
+.navbar-light .nav-link:hover {
+  color: #667eea !important;
+}
+
+.navbar-light .nav-link:focus,
+.navbar-light .nav-link:focus-visible {
+  color: #4b5563 !important;
+}
+
+.navbar-light .nav-link.active {
+  color: #667eea !important;
+}
+
+/* Direct nav-link overrides with element selector */
+a.nav-link:hover,
+.nav-link[href]:hover,
+.navbar a.nav-link:hover {
+  color: #667eea !important;
+}
+
+a.nav-link:focus,
+a.nav-link:focus-visible,
+.nav-link[href]:focus,
+.navbar a.nav-link:focus {
+  color: #4b5563 !important;
+}
+
 .navbar-brand {
   font-size: 1.5rem;
   font-weight: 700;
@@ -32,7 +76,7 @@
 }
 
 .nav-link {
-  color: #4b5563;
+  color: #4b5563 !important;
   font-weight: 500;
   padding: 0.5rem 1rem;
   transition: all 0.2s;
@@ -41,34 +85,73 @@
 }
 
 .nav-link:hover {
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
+  color: #667eea !important;
 }
 
-.nav-link.btn-register {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+.nav-link:focus,
+.nav-link:focus-visible {
+  color: #4b5563 !important;
+}
+
+.nav-link i {
+  color: inherit !important;
+}
+
+.nav-link.btn-register,
+a.nav-link.btn-register {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+  color: #ffffff !important;
   padding: 0.5rem 1.25rem;
   font-weight: 600;
 }
 
-.nav-link.btn-register:hover {
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+.nav-link.btn-register:hover,
+a.nav-link.btn-register:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+  color: #ffffff !important;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
+.nav-link.btn-register:focus,
+.nav-link.btn-register:focus-visible,
+a.nav-link.btn-register:focus,
+a.nav-link.btn-register:focus-visible {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
+  outline: none !important;
+}
+
+.nav-link.btn-register i {
+  color: #fff !important;
+}
+
 #logoutBtn {
-  border: none;
-  background: transparent;
-  color: #ef4444;
+  border: none !important;
+  background: transparent !important;
+  color: #ef4444 !important;
   padding: 0.5rem 1rem;
   font-weight: 500;
+  box-shadow: none !important;
+  text-decoration: none !important;
 }
 
 #logoutBtn:hover {
-  color: #dc2626;
-  background: rgba(239, 68, 68, 0.05);
+  color: #dc2626 !important;
+  background: rgba(239, 68, 68, 0.05) !important;
+  text-decoration: none !important;
+}
+
+#logoutBtn:focus,
+#logoutBtn:focus-visible {
+  color: #ef4444 !important;
+  background: transparent !important;
+  text-decoration: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .navbar-toggler {
@@ -77,6 +160,21 @@
 
 .navbar-toggler:focus {
   box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+/* Auth loading state - hide auth-dependent items until state is determined */
+.navbar-nav.auth-loading .logged-out-only,
+.navbar-nav.auth-loading .logged-in-only,
+.navbar-nav.auth-loading .admin-only {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Smooth transition when auth state is determined */
+.navbar-nav .logged-out-only,
+.navbar-nav .logged-in-only,
+.navbar-nav .admin-only {
+  transition: opacity 0.2s ease-in-out;
 }
 
 @media (max-width: 991px) {

@@ -30,6 +30,7 @@ export async function signUp(email, password, metadata = {}) {
         .from('users')
         .insert([{
           id: data.user.id,
+          email,
           full_name: metadata.full_name || '',
           phone: metadata.phone || '',
           role: 'user' // Default role
@@ -80,7 +81,6 @@ export async function signIn(email, password) {
 
     return { data, error: null };
   } catch (error) {
-    console.error('Sign in error:', error);
     return { data: null, error };
   }
 }
@@ -121,9 +121,26 @@ export async function getSession() {
  */
 export async function getCurrentUser() {
   try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError) {
+      throw sessionError;
+    }
+
+    if (!session) {
+      return { user: null, error: null };
+    }
+
     const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    return { user, error: null };
+
+    if (error) {
+      if (error.name === 'AuthSessionMissingError') {
+        return { user: null, error: null };
+      }
+      throw error;
+    }
+
+    return { user: user || null, error: null };
   } catch (error) {
     console.error('Get current user error:', error);
     return { user: null, error };

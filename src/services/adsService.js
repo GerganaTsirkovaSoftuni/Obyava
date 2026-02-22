@@ -19,28 +19,15 @@ import { supabase } from './supabaseClient.js';
 export async function getPublishedAds(filters = {}) {
   let query = supabase
     .from('advertisements')
-    .select(`
-      *,
-      users:owner_id (
-        id,
-        full_name,
-        phone
-      ),
-      categories (
-        id,
-        name,
-        slug
-      ),
-      advertisement_images (
-        uuid,
-        file_path,
-        position
-      )
-    `)
+    .select('*')
     .eq('status', 'Published')
     .order('created_at', { ascending: false });
 
   // Apply filters
+  if (filters.owner_id) {
+    query = query.eq('owner_id', filters.owner_id);
+  }
+
   if (filters.category_id) {
     query = query.eq('category_id', filters.category_id);
   }
@@ -53,14 +40,65 @@ export async function getPublishedAds(filters = {}) {
     query = query.limit(filters.limit);
   }
 
-  const { data, error} = await query;
+  const { data, error } = await query;
 
   if (error) {
     console.error('Get published ads error:', error);
-    throw new Error('Грешка при зареждане на обявите: ' + error.message);
+    throw new Error('Error loading advertisements: ' + error.message);
   }
 
-  return data || [];
+  const ads = data || [];
+  if (ads.length === 0) {
+    return [];
+  }
+
+  const ownerIds = [...new Set(ads.map((ad) => ad.owner_id).filter(Boolean))];
+  const categoryIds = [...new Set(ads.map((ad) => ad.category_id).filter(Boolean))];
+  const adUuids = ads.map((ad) => ad.uuid).filter(Boolean);
+
+  const [{ data: usersData }, { data: categoriesData }, { data: imagesData }] = await Promise.all([
+    ownerIds.length
+      ? supabase
+          .from('users')
+          .select('id, full_name, phone')
+          .in('id', ownerIds)
+      : Promise.resolve({ data: [] }),
+    categoryIds.length
+      ? supabase
+          .from('categories')
+          .select('id, name, slug')
+          .in('id', categoryIds)
+      : Promise.resolve({ data: [] }),
+    adUuids.length
+      ? supabase
+          .from('advertisement_images')
+          .select('uuid, file_path, position, advertisement_uuid')
+          .in('advertisement_uuid', adUuids)
+          .order('position', { ascending: true })
+      : Promise.resolve({ data: [] })
+  ]);
+
+  const usersById = new Map((usersData || []).map((user) => [user.id, user]));
+  const categoriesById = new Map((categoriesData || []).map((category) => [category.id, category]));
+  const imagesByAdUuid = new Map();
+
+  for (const image of imagesData || []) {
+    const key = image.advertisement_uuid;
+    const current = imagesByAdUuid.get(key) || [];
+    current.push({
+      uuid: image.uuid,
+      file_path: image.file_path,
+      position: image.position
+    });
+    imagesByAdUuid.set(key, current);
+  }
+
+  return ads.map((ad) => ({
+    ...ad,
+    users: usersById.get(ad.owner_id) || null,
+    categories: categoriesById.get(ad.category_id) || null,
+    advertisement_images: imagesByAdUuid.get(ad.uuid) || []
+  }));
 }
 
 /**
@@ -76,17 +114,13 @@ export async function getAdvertisementById(uuid) {
       users:owner_id (
         id,
         full_name,
-        phone
+        phone,
+        email
       ),
       categories (
         id,
         name,
         slug
-      ),
-      advertisement_images (
-        uuid,
-        file_path,
-        position
       )
     `)
     .eq('uuid', uuid)
@@ -94,10 +128,20 @@ export async function getAdvertisementById(uuid) {
 
   if (error) {
     console.error('Get advertisement error:', error);
-    throw new Error('Грешка при зареждане на обявата: ' + error.message);
+    throw new Error('Error loading advertisement: ' + error.message);
   }
 
-  return data;
+  // Fetch images separately
+  const { data: images } = await supabase
+    .from('advertisement_images')
+    .select('uuid, file_path, position')
+    .eq('advertisement_uuid', uuid)
+    .order('position', { ascending: true });
+
+  return {
+    ...data,
+    advertisement_images: images || []
+  };
 }
 
 /**
@@ -109,7 +153,7 @@ export async function getUserAds(filters = {}) {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    throw new Error('Потребителят не е влязъл в системата');
+    throw new Error('User is not logged in');
   }
 
   let query = supabase
@@ -120,11 +164,6 @@ export async function getUserAds(filters = {}) {
         id,
         name,
         slug
-      ),
-      advertisement_images (
-        uuid,
-        file_path,
-        position
       )
     `)
     .eq('owner_id', user.id)
@@ -138,10 +177,26 @@ export async function getUserAds(filters = {}) {
 
   if (error) {
     console.error('Get user ads error:', error);
-    throw new Error('Грешка при зареждане на обявите: ' + error.message);
+    throw new Error('Error loading advertisements: ' + error.message);
   }
 
-  return data || [];
+  // Fetch images separately for each advertisement
+  const adsWithImages = await Promise.all(
+    (data || []).map(async (ad) => {
+      const { data: images } = await supabase
+        .from('advertisement_images')
+        .select('uuid, file_path, position')
+        .eq('advertisement_uuid', ad.uuid)
+        .order('position', { ascending: true });
+      
+      return {
+        ...ad,
+        advertisement_images: images || []
+      };
+    })
+  );
+
+  return adsWithImages;
 }
 
 /**
@@ -153,7 +208,7 @@ export async function createAdvertisement(adData) {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    throw new Error('Потребителят не е влязъл в системата');
+    throw new Error('User is not logged in');
   }
 
   const { data, error } = await supabase
@@ -173,7 +228,7 @@ export async function createAdvertisement(adData) {
 
   if (error) {
     console.error('Create advertisement error:', error);
-    throw new Error('Грешка при създаване на обявата: ' + error.message);
+    throw new Error('Error creating advertisement: ' + error.message);
   }
 
   return data;
@@ -205,7 +260,7 @@ export async function updateAdvertisement(uuid, updates) {
 
   if (error) {
     console.error('Update advertisement error:', error);
-    throw new Error('Грешка при обновяване на обявата: ' + error.message);
+    throw new Error('Error updating advertisement: ' + error.message);
   }
 
   return data;
@@ -223,7 +278,7 @@ export async function deleteAdvertisement(uuid) {
 
   if (error) {
     console.error('Delete advertisement error:', error);
-    throw new Error('Грешка при изтриване на обявата: ' + error.message);
+    throw new Error('Error deleting advertisement: ' + error.message);
   }
 }
 
@@ -263,11 +318,6 @@ export async function getPendingAds() {
         id,
         name,
         slug
-      ),
-      advertisement_images (
-        uuid,
-        file_path,
-        position
       )
     `)
     .eq('status', 'Pending')
@@ -275,10 +325,26 @@ export async function getPendingAds() {
 
   if (error) {
     console.error('Get pending ads error:', error);
-    throw new Error('Грешка при зареждане на обявите: ' + error.message);
+    throw new Error('Error loading advertisements: ' + error.message);
   }
 
-  return data || [];
+  // Fetch images separately for each advertisement
+  const adsWithImages = await Promise.all(
+    (data || []).map(async (ad) => {
+      const { data: images } = await supabase
+        .from('advertisement_images')
+        .select('uuid, file_path, position')
+        .eq('advertisement_uuid', ad.uuid)
+        .order('position', { ascending: true });
+      
+      return {
+        ...ad,
+        advertisement_images: images || []
+      };
+    })
+  );
+
+  return adsWithImages;
 }
 
 /**
@@ -300,11 +366,6 @@ export async function getAllAds(filters = {}) {
         id,
         name,
         slug
-      ),
-      advertisement_images (
-        uuid,
-        file_path,
-        position
       )
     `)
     .order('created_at', { ascending: false});
@@ -317,10 +378,26 @@ export async function getAllAds(filters = {}) {
 
   if (error) {
     console.error('Get all ads error:', error);
-    throw new Error('Грешка при зареждане на обявите: ' + error.message);
+    throw new Error('Error loading advertisements: ' + error.message);
   }
 
-  return data || [];
+  // Fetch images separately for each advertisement
+  const adsWithImages = await Promise.all(
+    (data || []).map(async (ad) => {
+      const { data: images } = await supabase
+        .from('advertisement_images')
+        .select('uuid, file_path, position')
+        .eq('advertisement_uuid', ad.uuid)
+        .order('position', { ascending: true });
+      
+      return {
+        ...ad,
+        advertisement_images: images || []
+      };
+    })
+  );
+
+  return adsWithImages;
 }
 
 /**
@@ -341,7 +418,7 @@ export async function approveAdvertisement(uuid) {
 
   if (error) {
     console.error('Approve advertisement error:', error);
-    throw new Error('Грешка при одобряване на обявата: ' + error.message);
+    throw new Error('Error approving advertisement: ' + error.message);
   }
 
   return data;
@@ -365,7 +442,7 @@ export async function rejectAdvertisement(uuid, reason) {
 
   if (error) {
     console.error('Reject advertisement error:', error);
-    throw new Error('Грешка при отхвърляне на обявата: ' + error.message);
+    throw new Error('Error rejecting advertisement: ' + error.message);
   }
 
   return data;
@@ -384,7 +461,7 @@ export async function getCategories() {
 
   if (error) {
     console.error('Get categories error:', error);
-    throw new Error('Грешка при зареждане на категориите: ' + error.message);
+    throw new Error('Error loading categories: ' + error.message);
   }
 
   return data || [];
@@ -398,7 +475,7 @@ export async function getUserAdStats() {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    throw new Error('Потребителят не е влязъл в системата');
+    throw new Error('User is not logged in');
   }
 
   const { data, error } = await supabase
@@ -408,7 +485,7 @@ export async function getUserAdStats() {
 
   if (error) {
     console.error('Get user ad stats error:', error);
-    throw new Error('Грешка при зареждане на статистиките: ' + error.message);
+    throw new Error('Error loading statistics: ' + error.message);
   }
 
   const ads = data || [];

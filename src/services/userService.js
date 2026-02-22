@@ -22,7 +22,7 @@ export async function getAllUsers() {
 
   if (error) {
     console.error('Get all users error:', error);
-    throw new Error('Грешка при зареждане на потребители: ' + error.message);
+    throw new Error('Error loading users: ' + error.message);
   }
 
   return data || [];
@@ -35,7 +35,7 @@ export async function getAllUsers() {
  */
 export async function updateUserRole(userId, newRole) {
   if (!['user', 'admin'].includes(newRole)) {
-    throw new Error('Невалидна роля. Разрешени са: user, admin');
+    throw new Error('Invalid role. Allowed values: user, admin');
   }
 
   // Update in users table
@@ -46,7 +46,7 @@ export async function updateUserRole(userId, newRole) {
 
   if (updateError) {
     console.error('Update user role error:', updateError);
-    throw new Error('Грешка при промяна на ролята: ' + updateError.message);
+    throw new Error('Error updating role: ' + updateError.message);
   }
 
   // Also update user_roles table
@@ -87,7 +87,7 @@ export async function deleteUser(userId) {
 
   if (error) {
     console.error('Delete user error:', error);
-    throw new Error('Грешка при изтриване на потребител: ' + error.message);
+    throw new Error('Error deleting user: ' + error.message);
   }
 
   // Also try to delete the auth user (requires service role key)

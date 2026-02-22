@@ -42,3 +42,11 @@
   color: #764ba2;
   text-decoration: underline;
 }
+
+/* Loading spinner size fix */
+.login-page .btn .spinner-border {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.15em;
+  vertical-align: middle;
+}

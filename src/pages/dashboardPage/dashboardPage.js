@@ -2,12 +2,13 @@ import './dashboardPage.css';
 import template from './dashboardPage.html?raw';
 import { getPendingAds, getAllAds, approveAdvertisement, rejectAdvertisement, archiveAdvertisement, deleteAdvertisement } from '../../services/adsService.js';
 import { getAllUsers, updateUserRole, deleteUser, getPlatformStats } from '../../services/userService.js';
+import { confirm, alert } from '../../services/modalService.js';
 
 const statusTranslations = {
-  'Draft': 'Чернова',
-  'Pending': 'Чакаща одобрение',
-  'Published': 'Публикувана',
-  'Archived': 'Архивирана'
+  'Draft': 'Draft',
+  'Pending': 'Pending Approval',
+  'Published': 'Published',
+  'Archived': 'Archived'
 };
 
 function createAdminAdRow(ad, onAction) {
@@ -23,8 +24,8 @@ function createAdminAdRow(ad, onAction) {
         <h6 class="admin-ad-title mb-1">${ad.title}</h6>
         <div class="admin-ad-details">
           <span class="me-3"><i class="bi bi-person me-1"></i>${ad.user_name}</span>
-          <span class="me-3"><i class="bi bi-tag me-1"></i>${ad.price ? ad.price + ' лв.' : 'По договаряне'}</span>
-          <span class="me-3"><i class="bi bi-calendar me-1"></i>${new Date(ad.created_at).toLocaleDateString('bg-BG')}</span>
+          <span class="me-3"><i class="bi bi-tag me-1"></i>${ad.price ? ad.price + ' EUR' : 'Negotiable'}</span>
+          <span class="me-3"><i class="bi bi-calendar me-1"></i>${new Date(ad.created_at).toLocaleDateString('en-US')}</span>
         </div>
       </div>
       <div class="col-auto">
@@ -37,10 +38,10 @@ function createAdminAdRow(ad, onAction) {
           </button>
           ${ad.status === 'Pending' ? `
             <button class="btn btn-sm btn-success approve-btn" data-uuid="${ad.uuid}">
-              <i class="bi bi-check-circle"></i> Одобри
+              <i class="bi bi-check-circle"></i> Approve
             </button>
             <button class="btn btn-sm btn-danger reject-btn" data-uuid="${ad.uuid}">
-              <i class="bi bi-x-circle"></i> Отхвърли
+              <i class="bi bi-x-circle"></i> Reject
             </button>
           ` : ''}
           ${ad.status !== 'Archived' ? `
@@ -100,12 +101,12 @@ function createUserRow(user, onAction) {
         <p class="text-muted mb-0 small">${user.email}</p>
       </div>
       <div class="col-auto">
-        <span class="role-badge role-${user.role}">${user.role === 'admin' ? 'Админ' : 'Потребител'}</span>
+        <span class="role-badge role-${user.role}">${user.role === 'admin' ? 'Admin' : 'User'}</span>
       </div>
       <div class="col-auto">
         <div class="d-flex gap-2">
           <button class="btn btn-sm btn-outline-primary toggle-role-btn" data-id="${user.id}">
-            <i class="bi bi-person-gear"></i> ${user.role === 'admin' ? 'Направи потребител' : 'Направи админ'}
+            <i class="bi bi-person-gear"></i> ${user.role === 'admin' ? 'Set as User' : 'Set as Admin'}
           </button>
           ${user.role !== 'admin' ? `
             <button class="btn btn-sm btn-danger delete-user-btn" data-id="${user.id}">
@@ -136,7 +137,7 @@ async function loadPendingAds() {
     price: ad.price,
     status: ad.status,
     created_at: ad.created_at,
-    user_name: ad.users?.full_name || 'Неизвестен',
+    user_name: ad.users?.full_name || 'Unknown',
     image_url: ad.advertisement_images?.[0]?.file_path || null
   }));
 }
@@ -151,7 +152,7 @@ async function loadAllAds(statusFilter = '') {
     price: ad.price,
     status: ad.status,
     created_at: ad.created_at,
-    user_name: ad.users?.full_name || 'Неизвестен',
+    user_name: ad.users?.full_name || 'Unknown',
     image_url: ad.advertisement_images?.[0]?.file_path || null
   }));
 }
@@ -197,33 +198,36 @@ export function renderDashboardPage({ navigate }) {
       
       switch (action) {
         case 'approve':
-          if (confirm('Одобри тази обява?')) {
+          const approveConfirmed = await confirm('Approve this advertisement?', 'Approve Advertisement');
+          if (approveConfirmed) {
             await approveAdvertisement(adId);
-            alert('Обявата е одобрена');
+            await alert('Advertisement approved', 'Success', 'success');
             loadPendingAdsData();
             loadAllAdsData();
           }
           break;
         case 'reject':
-          const reason = prompt('Причина за отхвърляне:');
+          const reason = prompt('Reason for rejection:');
           if (reason) {
             await rejectAdvertisement(adId, reason);
-            alert('Обявата е отхвърлена');
+            await alert('Advertisement rejected', 'Success', 'success');
             loadPendingAdsData();
             loadAllAdsData();
           }
           break;
         case 'archive':
-          if (confirm('Архивирай тази обява?')) {
+          const archiveConfirmed = await confirm('Archive this advertisement?', 'Archive Advertisement');
+          if (archiveConfirmed) {
             await archiveAdvertisement(adId);
-            alert('Обявата е архивирана');
+            await alert('Advertisement archived', 'Success', 'success');
             loadAllAdsData();
           }
           break;
         case 'delete':
-          if (confirm('ВНИМАНИЕ: Изтриването е необратимо! Сигурни ли сте?')) {
+          const deleteConfirmed = await confirm('WARNING: Deletion is irreversible. Are you sure?', 'Delete Advertisement');
+          if (deleteConfirmed) {
             await deleteAdvertisement(adId);
-            alert('Обявата е изтрита');
+            await alert('Advertisement deleted', 'Success', 'success');
             loadPendingAdsData();
             loadAllAdsData();
           }
@@ -231,7 +235,7 @@ export function renderDashboardPage({ navigate }) {
       }
     } catch (error) {
       console.error('Error handling ad action:', error);
-      alert('Грешка при изпълнение на действието');
+      await alert('Error executing action', 'Error', 'error');
     }
   }
 
@@ -242,20 +246,22 @@ export function renderDashboardPage({ navigate }) {
       
       switch (action) {
         case 'toggle-role':
-          if (confirm('Промени ролята на този потребител?')) {
+          const roleConfirmed = await confirm('Change this user role?', 'Change User Role');
+          if (roleConfirmed) {
             // Find user to get current role
             const users = await loadUsers();
             const user = users.find(u => u.id === userId);
             const newRole = user.role === 'admin' ? 'user' : 'admin';
             await updateUserRole(userId, newRole);
-            alert('Ролята е променена');
+            await alert('Role updated', 'Success', 'success');
             loadUsersData();
           }
           break;
         case 'delete-user':
-          if (confirm('ВНИМАНИЕ: Изтриването ще премахне и всички обяви на потребителя! Сигурни ли сте?')) {
+          const deleteUserConfirmed = await confirm('WARNING: Deleting this user will also remove all their advertisements. Are you sure?', 'Delete User');
+          if (deleteUserConfirmed) {
             await deleteUser(userId);
-            alert('Потребителят е изтрит');
+            await alert('User deleted', 'Success', 'success');
             loadUsersData();
             loadAllAdsData(); // Refresh ads as some might have been deleted
           }
@@ -263,7 +269,7 @@ export function renderDashboardPage({ navigate }) {
       }
     } catch (error) {
       console.error('Error handling user action:', error);
-      alert('Грешка при изпълнение на действието');
+      await alert('Error executing action', 'Error', 'error');
     }
   }
 
@@ -311,7 +317,7 @@ export function renderDashboardPage({ navigate }) {
       loadingAllAds.classList.add('d-none');
       
       if (ads.length === 0) {
-        allAdsList.innerHTML = '<div class="text-center py-5 text-muted">Няма намерени обяви</div>';
+        allAdsList.innerHTML = '<div class="text-center py-5 text-muted">No advertisements found</div>';
       } else {
         ads.forEach(ad => {
           const row = createAdminAdRow(ad, handleAdAction);

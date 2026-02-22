@@ -2,21 +2,13 @@ import './advertisementPage.css';
 import template from './advertisementPage.html?raw';
 import { getAdvertisementById, deleteAdvertisement, archiveAdvertisement, submitForReview, approveAdvertisement, rejectAdvertisement } from '../../services/adsService.js';
 import { getSession, isUserAdmin } from '../../services/authService.js';
-
-const categoryTranslations = {
-  'electronics': 'Електроника',
-  'vehicles': 'Превозни средства',
-  'real-estate': 'Недвижими имоти',
-  'jobs': 'Работа',
-  'services': 'Услуги',
-  'other': 'Други'
-};
+import { confirm, alert } from '../../services/modalService.js';
 
 const statusTranslations = {
-  'Draft': 'Чернова',
-  'Pending': 'Чакаща одобрение',
-  'Published': 'Публикувана',
-  'Archived': 'Архивирана'
+  'Draft': 'Draft',
+  'Pending': 'Pending Approval',
+  'Published': 'Published',
+  'Archived': 'Archived'
 };
 
 async function loadAdvertisement(adUuid) {
@@ -28,15 +20,16 @@ async function loadAdvertisement(adUuid) {
     title: ad.title,
     description: ad.description,
     price: ad.price,
-    category: ad.categories?.name || 'Неизвестна категория',
+    category: ad.categories?.name || 'Unknown category',
     location: ad.location,
     status: ad.status,
     created_at: ad.created_at,
     images: ad.advertisement_images?.map(img => img.file_path) || [],
     seller: {
       id: ad.owner_id,
-      full_name: ad.users?.full_name || 'Неизвестен',
-      phone: ad.owner_phone || ad.users?.phone || 'Не е посочен'
+      full_name: ad.users?.full_name || 'Unknown',
+      phone: ad.owner_phone || ad.users?.phone || '',
+      email: ad.users?.email || ''
     }
   };
 }
@@ -59,12 +52,18 @@ export function renderAdvertisementPage({ navigate, params }) {
   const adCategory = section.querySelector('#adCategory');
   const adLocation = section.querySelector('#adLocation');
   const adDate = section.querySelector('#adDate');
-  const adViews = section.querySelector('#adViews');
   const adStatus = section.querySelector('#adStatus');
   const adBreadcrumb = section.querySelector('#adBreadcrumb');
   const carouselImages = section.querySelector('#carouselImages');
+  const moreSellerAdsBtn = section.querySelector('#moreSellerAdsBtn');
   const sellerName = section.querySelector('#sellerName');
   const sellerPhone = section.querySelector('#sellerPhone');
+  const sellerEmail = section.querySelector('#sellerEmail');
+  const sellerPhoneRow = section.querySelector('#sellerPhoneRow');
+  const sellerEmailRow = section.querySelector('#sellerEmailRow');
+  const sellerContactActions = section.querySelector('#sellerContactActions');
+  const callSellerBtn = section.querySelector('#callSellerBtn');
+  const emailSellerBtn = section.querySelector('#emailSellerBtn');
 
   const ownerActions = section.querySelector('#ownerActions');
   const adminActions = section.querySelector('#adminActions');
@@ -76,22 +75,59 @@ export function renderAdvertisementPage({ navigate, params }) {
       adTitle.textContent = ad.title;
       adBreadcrumb.textContent = ad.title;
       adDescription.textContent = ad.description;
-      adPrice.textContent = ad.price ? `${ad.price} лв.` : 'По договаряне';
+      adPrice.textContent = ad.price ? `${ad.price} EUR` : 'Negotiable';
       adCategory.textContent = ad.category;
       adLocation.textContent = ad.location;
-      adDate.textContent = new Date(ad.created_at).toLocaleDateString('bg-BG');
+      adDate.textContent = new Date(ad.created_at).toLocaleDateString('en-US');
       
       // Status badge
-      const statusClass = `status-${ad.status}`;
+      const statusClass = `status-${String(ad.status || '').toLowerCase()}`;
+      const statusLabel = statusTranslations[ad.status] || ad.status || 'Unknown';
       adStatus.innerHTML = `
         <span class="status-badge ${statusClass}">
-          ${statusTranslations[ad.status] || ad.status}
+          Status: ${statusLabel}
         </span>
       `;
 
       // Seller info
       sellerName.textContent = ad.seller.full_name;
-      sellerPhone.textContent = ad.seller.phone;
+      const hasPhone = Boolean(ad.seller.phone && ad.seller.phone.trim());
+      const hasEmail = Boolean(ad.seller.email && ad.seller.email.trim());
+
+      sellerPhone.textContent = hasPhone ? ad.seller.phone : 'Not provided';
+      sellerEmail.textContent = hasEmail ? ad.seller.email : 'Not provided';
+
+      sellerPhoneRow.classList.toggle('d-none', !hasPhone);
+      sellerEmailRow.classList.toggle('d-none', !hasEmail);
+
+      const normalizedPhone = hasPhone
+        ? ad.seller.phone.replace(/[^+\d]/g, '')
+        : '';
+
+      if (hasPhone && normalizedPhone) {
+        callSellerBtn.href = `tel:${normalizedPhone}`;
+        callSellerBtn.classList.remove('d-none');
+      } else {
+        callSellerBtn.classList.add('d-none');
+      }
+
+      if (hasEmail) {
+        emailSellerBtn.href = `mailto:${ad.seller.email}`;
+        emailSellerBtn.classList.remove('d-none');
+      } else {
+        emailSellerBtn.classList.add('d-none');
+      }
+
+      sellerContactActions.classList.toggle('d-none', !(hasPhone || hasEmail));
+
+      if (ad.seller.id) {
+        moreSellerAdsBtn.classList.remove('d-none');
+        moreSellerAdsBtn.onclick = () => {
+          navigate(`/user/${ad.seller.id}/ads`);
+        };
+      } else {
+        moreSellerAdsBtn.classList.add('d-none');
+      }
 
       // Images (if multiple)
       if (ad.images && ad.images.length > 0) {
@@ -105,17 +141,17 @@ export function renderAdvertisementPage({ navigate, params }) {
       // Check ownership and role
       const { session } = await getSession();
       const currentUserId = session?.user?.id || null;
-      const isAdmin = session ? await isUserAdmin() : false;
+      const isAdmin = session && currentUserId ? (await isUserAdmin(currentUserId)).isAdmin : false;
       const isOwner = currentUserId === ad.seller.id;
 
-      if (isOwner && ad.status !== 'archived') {
+      if (isOwner && ad.status !== 'Archived') {
         ownerActions.classList.remove('d-none');
         
         // Show appropriate action buttons based on status
-        if (ad.status === 'draft') {
+        if (ad.status === 'Draft') {
           section.querySelector('#publishBtn').classList.remove('d-none');
         }
-        if (ad.status === 'published') {
+        if (ad.status === 'Published') {
           section.querySelector('#archiveBtn').classList.remove('d-none');
         }
 
@@ -125,14 +161,15 @@ export function renderAdvertisementPage({ navigate, params }) {
         });
 
         section.querySelector('#deleteBtn')?.addEventListener('click', async () => {
-          if (confirm('Сигурни ли сте, че искате да изтриете тази обява?')) {
+          const confirmed = await confirm('Are you sure you want to delete this advertisement?', 'Delete Advertisement');
+          if (confirmed) {
             try {
               await deleteAdvertisement(ad.uuid);
-              alert('Обявата е изтрита успешно');
+              await alert('Advertisement deleted successfully', 'Success', 'success');
               navigate('/profile');
             } catch (error) {
               console.error('Error deleting ad:', error);
-              alert('Грешка при изтриване на обявата: ' + error.message);
+              await alert('Error deleting advertisement: ' + error.message, 'Error', 'error');
             }
           }
         });
@@ -140,23 +177,24 @@ export function renderAdvertisementPage({ navigate, params }) {
         section.querySelector('#publishBtn')?.addEventListener('click', async () => {
           try {
             await submitForReview(ad.uuid);
-            alert('Обявата е изпратена за одобрение');
+            await alert('Advertisement submitted for review', 'Success', 'success');
             displayAdvertisement(); // Reload to show updated status
           } catch (error) {
             console.error('Error submitting ad:', error);
-            alert('Грешка при изпращане на обявата: ' + error.message);
+            await alert('Error submitting advertisement: ' + error.message, 'Error', 'error');
           }
         });
 
         section.querySelector('#archiveBtn')?.addEventListener('click', async () => {
-          if (confirm('Сигурни ли сте, че искате да архивирате тази обява?')) {
+          const confirmed = await confirm('Are you sure you want to archive this advertisement?', 'Archive Advertisement');
+          if (confirmed) {
             try {
               await archiveAdvertisement(ad.uuid);
-              alert('Обявата е архивирана');
+              await alert('Advertisement archived', 'Success', 'success');
               displayAdvertisement(); // Reload to show updated status
             } catch (error) {
               console.error('Error archiving ad:', error);
-              alert('Грешка при архивиране на обявата: ' + error.message);
+              await alert('Error archiving advertisement: ' + error.message, 'Error', 'error');
             }
           }
         });
@@ -168,50 +206,42 @@ export function renderAdvertisementPage({ navigate, params }) {
         section.querySelector('#approveBtn')?.addEventListener('click', async () => {
           try {
             await approveAdvertisement(ad.uuid);
-            alert('Обявата е одобрена');
+            await alert('Advertisement approved', 'Success', 'success');
             displayAdvertisement(); // Reload to show updated status
           } catch (error) {
             console.error('Error approving ad:', error);
-            alert('Грешка при одобряване на обявата: ' + error.message);
+            await alert('Error approving advertisement: ' + error.message, 'Error', 'error');
           }
         });
 
         section.querySelector('#rejectBtn')?.addEventListener('click', async () => {
-          const reason = prompt('Причина за отхвърляне на обявата:');
+          const reason = prompt('Reason for rejection:');
           if (reason) {
             try {
               await rejectAdvertisement(ad.uuid, reason);
-              alert('Обявата е отхвърлена');
+              await alert('Advertisement rejected', 'Success', 'success');
               displayAdvertisement(); // Reload to show updated status
             } catch (error) {
               console.error('Error rejecting ad:', error);
-              alert('Грешка при отхвърляне на обявата: ' + error.message);
+              await alert('Error rejecting advertisement: ' + error.message, 'Error', 'error');
             }
           }
         });
 
         section.querySelector('#adminArchiveBtn')?.addEventListener('click', async () => {
-          if (confirm('Сигурни ли сте, че искате да архивирате тази обява?')) {
+          const confirmed = await confirm('Are you sure you want to archive this advertisement?', 'Archive Advertisement');
+          if (confirmed) {
             try {
               await archiveAdvertisement(ad.uuid);
-              alert('Обявата е архивирана');
+              await alert('Advertisement archived', 'Success', 'success');
               displayAdvertisement(); // Reload to show updated status
             } catch (error) {
               console.error('Error archiving ad:', error);
-              alert('Грешка при архивиране на обявата: ' + error.message);
+              await alert('Error archiving advertisement: ' + error.message, 'Error', 'error');
             }
           }
         });
       }
-
-      section.querySelector('#contactBtn')?.addEventListener('click', () => {
-        // Show phone number or contact modal
-        if (ad.seller.phone && ad.seller.phone !== 'Не е посочен') {
-          alert(`Телефон за контакт: ${ad.seller.phone}`);
-        } else {
-          alert('Контактна информация не е налична');
-        }
-      });
 
       loadingState.classList.add('d-none');
       adContent.classList.remove('d-none');

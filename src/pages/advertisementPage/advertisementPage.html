@@ -3,7 +3,7 @@
     <!-- Loading State -->
     <div id="loadingState" class="text-center py-5">
       <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Зареждане...</span>
+        <span class="visually-hidden">Loading...</span>
       </div>
     </div>
 
@@ -12,8 +12,8 @@
       <!-- Breadcrumb -->
       <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="/" data-link>Начало</a></li>
-          <li class="breadcrumb-item active" aria-current="page" id="adBreadcrumb">Обява</li>
+          <li class="breadcrumb-item"><a href="/" data-link>Home</a></li>
+          <li class="breadcrumb-item active" aria-current="page" id="adBreadcrumb">Advertisement</li>
         </ol>
       </nav>
 
@@ -30,11 +30,11 @@
                 </div>
                 <button class="carousel-control-prev" type="button" data-bs-target="#adImageCarousel" data-bs-slide="prev">
                   <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                  <span class="visually-hidden">Предишна</span>
+                  <span class="visually-hidden">Previous</span>
                 </button>
                 <button class="carousel-control-next" type="button" data-bs-target="#adImageCarousel" data-bs-slide="next">
                   <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                  <span class="visually-hidden">Следваща</span>
+                  <span class="visually-hidden">Next</span>
                 </button>
               </div>
             </div>
@@ -44,9 +44,12 @@
           <div class="card shadow-sm">
             <div class="card-body">
               <h3 class="card-title mb-3">
-                <i class="bi bi-file-text me-2"></i>Описание
+                <i class="bi bi-file-text me-2"></i>Description
               </h3>
               <p id="adDescription" class="ad-description"></p>
+              <button id="moreSellerAdsBtn" class="btn btn-outline-primary mt-3">
+                More adds from this user
+              </button>
             </div>
           </div>
         </div>
@@ -72,10 +75,6 @@
                   <i class="bi bi-calendar me-2"></i>
                   <span id="adDate"></span>
                 </div>
-                <div class="mb-2">
-                  <i class="bi bi-eye me-2"></i>
-                  <span id="adViews">0 прегледа</span>
-                </div>
               </div>
 
               <div id="adStatus" class="mb-3"></div>
@@ -86,22 +85,31 @@
           <div class="card shadow-sm mb-4">
             <div class="card-body">
               <h5 class="card-title mb-3">
-                <i class="bi bi-person me-2"></i>Продавач
+                <i class="bi bi-person me-2"></i>Seller
               </h5>
               <div class="seller-info">
-                <p class="mb-2">
+                <p class="seller-contact-line mb-2">
                   <i class="bi bi-person-circle me-2"></i>
                   <span id="sellerName"></span>
                 </p>
-                <p class="mb-0">
+                <p class="seller-contact-line mb-2" id="sellerPhoneRow">
                   <i class="bi bi-telephone me-2"></i>
                   <span id="sellerPhone"></span>
                 </p>
+                <p class="seller-contact-line mb-0" id="sellerEmailRow">
+                  <i class="bi bi-envelope me-2"></i>
+                  <span id="sellerEmail"></span>
+                </p>
               </div>
-              
-              <button id="contactBtn" class="btn btn-primary w-100 mt-3">
-                <i class="bi bi-envelope me-2"></i>Свържи се
-              </button>
+
+              <div id="sellerContactActions" class="d-grid gap-2 mt-3 d-none">
+                <button id="callSellerBtn" class="btn" href="#">
+                  <i class="bi bi-telephone me-2"></i>Call Seller
+                </button>
+                <button id="emailSellerBtn" class="btn" href="#">
+                  <i class="bi bi-envelope me-2"></i>Email Seller
+                </a>
+              </div>
             </div>
           </div>
 
@@ -109,18 +117,18 @@
           <div id="ownerActions" class="d-none">
             <div class="card shadow-sm mb-4">
               <div class="card-body">
-                <h5 class="card-title mb-3">Действия</h5>
+                <h5 class="card-title mb-3">Actions</h5>
                 <button id="editBtn" class="btn btn-outline-primary w-100 mb-2">
-                  <i class="bi bi-pencil me-2"></i>Редактирай
+                  <i class="bi bi-pencil me-2"></i>Edit
                 </button>
                 <button id="deleteBtn" class="btn btn-outline-danger w-100 mb-2">
-                  <i class="bi bi-trash me-2"></i>Изтрий
+                  <i class="bi bi-trash me-2"></i>Delete
                 </button>
                 <button id="publishBtn" class="btn btn-success w-100 mb-2 d-none">
-                  <i class="bi bi-send me-2"></i>Изпрати за одобрение
+                  <i class="bi bi-send me-2"></i>Submit for Review
                 </button>
                 <button id="archiveBtn" class="btn btn-warning w-100 d-none">
-                  <i class="bi bi-archive me-2"></i>Архивирай
+                  <i class="bi bi-archive me-2"></i>Archive
                 </button>
               </div>
             </div>
@@ -131,16 +139,16 @@
             <div class="card shadow-sm mb-4 border-warning">
               <div class="card-body">
                 <h5 class="card-title mb-3 text-warning">
-                  <i class="bi bi-shield-check me-2"></i>Административни действия
+                  <i class="bi bi-shield-check me-2"></i>Admin Actions
                 </h5>
                 <button id="approveBtn" class="btn btn-success w-100 mb-2">
-                  <i class="bi bi-check-circle me-2"></i>Одобри
+                  <i class="bi bi-check-circle me-2"></i>Approve
                 </button>
                 <button id="rejectBtn" class="btn btn-danger w-100 mb-2">
-                  <i class="bi bi-x-circle me-2"></i>Отхвърли
+                  <i class="bi bi-x-circle me-2"></i>Reject
                 </button>
                 <button id="adminArchiveBtn" class="btn btn-warning w-100">
-                  <i class="bi bi-archive me-2"></i>Архивирай
+                  <i class="bi bi-archive me-2"></i>Archive
                 </button>
               </div>
             </div>
@@ -152,8 +160,8 @@
     <!-- Error State -->
     <div id="errorState" class="text-center py-5 d-none">
       <i class="bi bi-exclamation-triangle display-1 text-danger"></i>
-      <p class="text-muted mt-3">Обявата не може да бъде заредена</p>
-      <a href="/" class="btn btn-primary" data-link>Към начална страница</a>
+      <p class="text-muted mt-3">Advertisement could not be loaded</p>
+      <a href="/" class="btn btn-primary" data-link>Back to Home</a>
     </div>
   </div>
 </section>

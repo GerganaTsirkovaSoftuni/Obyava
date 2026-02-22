@@ -5,24 +5,24 @@
         <div class="card shadow-sm mt-5">
           <div class="card-body p-4">
             <h2 class="card-title text-center mb-4">
-              <i class="bi bi-person-plus me-2"></i>Регистрация
+              <i class="bi bi-person-plus me-2"></i>Register
             </h2>
             
             <form id="registerForm">
               <div class="mb-3">
-                <label for="fullName" class="form-label">Име и фамилия</label>
+                <label for="fullName" class="form-label">Full Name</label>
                 <input 
                   type="text" 
                   class="form-control" 
                   id="fullName" 
                   name="fullName"
-                  placeholder="Иван Иванов"
+                  placeholder="John Doe"
                   required
                 >
               </div>
 
               <div class="mb-3">
-                <label for="phone" class="form-label">Телефон</label>
+                <label for="phone" class="form-label">Phone</label>
                 <input 
                   type="tel" 
                   class="form-control" 
@@ -34,7 +34,7 @@
               </div>
               
               <div class="mb-3">
-                <label for="email" class="form-label">Имейл</label>
+                <label for="email" class="form-label">Email</label>
                 <input 
                   type="email" 
                   class="form-control" 
@@ -46,7 +46,7 @@
               </div>
               
               <div class="mb-3">
-                <label for="password" class="form-label">Парола</label>
+                <label for="password" class="form-label">Password</label>
                 <input 
                   type="password" 
                   class="form-control" 
@@ -56,11 +56,11 @@
                   minlength="6"
                   required
                 >
-                <div class="form-text">Минимум 6 символа</div>
+                <div class="form-text">Minimum 6 characters</div>
               </div>
 
               <div class="mb-3">
-                <label for="confirmPassword" class="form-label">Потвърди парола</label>
+                <label for="confirmPassword" class="form-label">Confirm Password</label>
                 <input 
                   type="password" 
                   class="form-control" 
@@ -75,11 +75,11 @@
               <div id="successMessage" class="alert alert-success d-none" role="alert"></div>
               
               <button type="submit" class="btn btn-primary w-100 mb-3">
-                <i class="bi bi-person-plus me-2"></i>Регистрирай се
+                <i class="bi bi-person-plus me-2"></i>Create Account
               </button>
               
               <div class="text-center">
-                <p class="mb-0">Вече имате акаунт? <a href="/login" data-link>Влезте</a></p>
+                <p class="mb-0">Already have an account? <a href="/login" data-link>Login</a></p>
               </div>
             </form>
           </div>

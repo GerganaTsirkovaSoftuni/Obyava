@@ -87,7 +87,7 @@ GET /get-ads?status=Published&category=1&search=laptop&limit=10&offset=0
       "advertisement_images": [
         {
           "uuid": "image-uuid",
-          "file_path": "https://source.unsplash.com/600x400?...",
+          "file_path": "https://picsum.photos/seed/sample-image/600/400",
           "position": 1
         }
       ]
@@ -144,8 +144,8 @@ GET /get-ads?status=Published&category=1&search=laptop&limit=10&offset=0
   "location": "New York, NY",
   "owner_phone": "+15551234567",
   "image_urls": [
-    "https://source.unsplash.com/600x400?laptop",
-    "https://source.unsplash.com/600x400?electronics"
+    "https://picsum.photos/seed/laptop/600/400",
+    "https://picsum.photos/seed/electronics/600/400"
   ]
 }
 ```

@@ -2,6 +2,13 @@ import './createAdPage.css';
 import template from './createAdPage.html?raw';
 import { getAdvertisementById, createAdvertisement, updateAdvertisement, getCategories } from '../../services/adsService.js';
 import { uploadAdImages, validateImageFile, deleteAdImages } from '../../services/storageService.js';
+import { confirm, alert } from '../../services/modalService.js';
+import {
+  validateRequired,
+  validatePhoneField,
+  clearFormErrors,
+  addRealTimeValidation
+} from '../../services/validationService.js';
 
 async function loadAdvertisement(adUuid) {
   if (!adUuid) return null;
@@ -39,28 +46,51 @@ export function renderCreateAdPage({ navigate, params }) {
 
   // Update page title for edit mode
   if (isEditMode) {
-    pageTitle.innerHTML = '<i class="bi bi-pencil me-2"></i>Редактирай обява';
+    pageTitle.innerHTML = '<i class="bi bi-pencil me-2"></i>Edit Advertisement';
+  }
+
+  async function populateCategories(categoryId = '') {
+    const categorySelect = section.querySelector('#category');
+
+    try {
+      const categories = await getCategories();
+      categorySelect.innerHTML = '<option value="">Select category</option>';
+
+      categories.forEach((category) => {
+        const option = document.createElement('option');
+        option.value = String(category.id);
+        option.textContent = category.name;
+        categorySelect.appendChild(option);
+      });
+
+      if (categoryId) {
+        categorySelect.value = String(categoryId);
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error);
+      categorySelect.innerHTML = '<option value="">No categories available</option>';
+    }
   }
 
   // Handle image preview
   const selectedFiles = [];
   
-  imageInput.addEventListener('change', (e) => {
+  imageInput.addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
     
-    // Limit to 5 images
-    if (selectedFiles.length + files.length > 5) {
-      alert('Можете да качите максимум 5 снимки');
+    // Limit to 5 images total (existing + already selected + new files)
+    if (existingImages.length + selectedFiles.length + files.length > 5) {
+      await alert('You can upload a maximum of 5 images', 'Upload Limit', 'warning');
       imageInput.value = '';
       return;
     }
 
-    files.forEach(file => {
+    for (const file of files) {
       // Validate file using storage service
       const validation = validateImageFile(file);
       if (!validation.valid) {
-        alert(validation.error);
-        return;
+        await alert(validation.error, 'Invalid File', 'error');
+        continue;
       }
 
       selectedFiles.push(file);
@@ -84,7 +114,7 @@ export function renderCreateAdPage({ navigate, params }) {
         });
       };
       reader.readAsDataURL(file);
-    });
+    }
 
     // Clear the input
     imageInput.value = '';
@@ -92,49 +122,69 @@ export function renderCreateAdPage({ navigate, params }) {
 
   // Load existing ad data if in edit mode
   let existingImages = [];
-  if (isEditMode) {
-    loadAdvertisement(adUuid).then(ad => {
-      if (ad) {
-        form.elements.title.value = ad.title;
-        form.elements.description.value = ad.description;
-        form.elements.price.value = ad.price || '';
-        form.elements.category.value = ad.category_id;
-        form.elements.location.value = ad.location;
-        form.elements.phone.value = ad.phone;
-        
-        // Load existing images
-        existingImages = ad.images || [];
-        existingImages.forEach((img, index) => {
-          const previewItem = document.createElement('div');
-          previewItem.className = 'image-preview-item';
-          previewItem.innerHTML = `
-            <img src="${img.file_path}" alt="Existing image">
-            <button type="button" class="image-preview-remove existing" data-uuid="${img.uuid}">
-              <i class="bi bi-x"></i>
-            </button>
-          `;
-          imagePreview.appendChild(previewItem);
-          
-          previewItem.querySelector('.image-preview-remove').addEventListener('click', function() {
-            const imageUuid = this.dataset.uuid;
-            existingImages = existingImages.filter(i => i.uuid !== imageUuid);
-            previewItem.remove();
+  (async () => {
+    if (isEditMode) {
+      try {
+        const ad = await loadAdvertisement(adUuid);
+        if (ad) {
+          await populateCategories(ad.category_id);
+
+          form.elements.title.value = ad.title;
+          form.elements.description.value = ad.description;
+          form.elements.price.value = ad.price || '';
+          form.elements.location.value = ad.location;
+          form.elements.phone.value = ad.phone;
+
+          // Load existing images
+          existingImages = ad.images || [];
+          existingImages.forEach((img) => {
+            const previewItem = document.createElement('div');
+            previewItem.className = 'image-preview-item';
+            previewItem.innerHTML = `
+              <img src="${img.file_path}" alt="Existing image">
+              <button type="button" class="image-preview-remove existing" data-uuid="${img.uuid}">
+                <i class="bi bi-x"></i>
+              </button>
+            `;
+            imagePreview.appendChild(previewItem);
+
+            previewItem.querySelector('.image-preview-remove').addEventListener('click', function() {
+              const imageUuid = this.dataset.uuid;
+              existingImages = existingImages.filter(i => i.uuid !== imageUuid);
+              previewItem.remove();
+            });
           });
-        });
+        }
+      } catch (error) {
+        console.error('Error loading advertisement:', error);
+        errorMessage.textContent = 'Error loading advertisement';
+        errorMessage.classList.remove('d-none');
       }
-    }).catch(error => {
-      console.error('Error loading advertisement:', error);
-      errorMessage.textContent = 'Грешка при зареждане на обявата';
-      errorMessage.classList.remove('d-none');
-    });
-  }
+    } else {
+      await populateCategories();
+    }
+  })();
 
   // Handle cancel
-  cancelBtn.addEventListener('click', () => {
-    if (confirm('Сигурни ли сте, че искате да отмените? Несъхранените промени ще бъдат загубени.')) {
+  cancelBtn.addEventListener('click', async () => {
+    const confirmed = await confirm('Are you sure you want to cancel? Unsaved changes will be lost.', 'Cancel Changes');
+    if (confirmed) {
       navigate(isEditMode ? `/advertisement/${adUuid}` : '/');
     }
   });
+
+  // Add real-time validation
+  const titleInput = form.querySelector('#title');
+  const descriptionInput = form.querySelector('#description');
+  const categoryInput = form.querySelector('#category');
+  const locationInput = form.querySelector('#location');
+  const phoneInput = form.querySelector('#phone');
+
+  addRealTimeValidation(titleInput, (input) => validateRequired(input, 'Title'));
+  addRealTimeValidation(descriptionInput, (input) => validateRequired(input, 'Description'));
+  addRealTimeValidation(categoryInput, (input) => validateRequired(input, 'Category'));
+  addRealTimeValidation(locationInput, (input) => validateRequired(input, 'Location'));
+  addRealTimeValidation(phoneInput, validatePhoneField);
 
   // Handle form submission
   form.addEventListener('submit', async (e) => {
@@ -145,22 +195,34 @@ export function renderCreateAdPage({ navigate, params }) {
     
     errorMessage.classList.add('d-none');
     successMessage.classList.add('d-none');
+    clearFormErrors(form);
+
+    // Validate all required fields
+    const isTitleValid = validateRequired(titleInput, 'Title');
+    const isDescriptionValid = validateRequired(descriptionInput, 'Description');
+    const isCategoryValid = validateRequired(categoryInput, 'Category');
+    const isLocationValid = validateRequired(locationInput, 'Location');
+    const isPhoneValid = validatePhoneField(phoneInput);
+
+    if (!isTitleValid || !isDescriptionValid || !isCategoryValid || !isLocationValid || !isPhoneValid) {
+      return;
+    }
 
     // Disable submit buttons and show loading state
     const submitButtons = form.querySelectorAll('button[type="submit"]');
     submitButtons.forEach(btn => {
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Запазване...';
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
     });
 
     const formData = new FormData(form);
     const adData = {
-      title: formData.get('title'),
-      description: formData.get('description'),
+      title: formData.get('title').trim(),
+      description: formData.get('description').trim(),
       category_id: parseInt(formData.get('category')),
-      price: formData.get('price') ? parseFloat(formData.get('price')) : null,
-      location: formData.get('location'),
-      phone: formData.get('phone'),
+      price: formData.get('price').trim() ? parseFloat(formData.get('price').trim()) : null,
+      location: formData.get('location').trim(),
+      phone: formData.get('phone').trim(),
       status: action === 'draft' ? 'Draft' : 'Pending'
     };
 
@@ -190,10 +252,10 @@ export function renderCreateAdPage({ navigate, params }) {
       }
       
       const successText = isEditMode 
-        ? 'Обявата е обновена успешно!'
+        ? 'Advertisement updated successfully!'
         : action === 'draft' 
-          ? 'Обявата е запазена като чернова'
-          : 'Обявата е изпратена за одобрение';
+          ? 'Advertisement saved as draft'
+          : 'Advertisement submitted for review';
           
       successMessage.textContent = successText;
       successMessage.classList.remove('d-none');
@@ -204,14 +266,17 @@ export function renderCreateAdPage({ navigate, params }) {
       
     } catch (error) {
       console.error('Error saving advertisement:', error);
-      errorMessage.textContent = error.message || 'Грешка при запазване на обявата. Моля, опитайте отново.';
+      errorMessage.textContent = error.message || 'Error saving advertisement. Please try again.';
       errorMessage.classList.remove('d-none');
       
       // Re-enable submit buttons
       submitButtons.forEach(btn => {
         btn.disabled = false;
-        const originalText = btn.dataset.action === 'draft' ? 'Запази като чернова' : 'Публикувай';
-        btn.innerHTML = originalText;
+        if (btn.dataset.action === 'draft') {
+          btn.innerHTML = '<i class="bi bi-save me-2"></i>Save as Draft';
+        } else {
+          btn.innerHTML = '<i class="bi bi-send me-2"></i>Submit for Review';
+        }
       });
     }
   });

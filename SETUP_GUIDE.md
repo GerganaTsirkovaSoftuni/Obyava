@@ -66,11 +66,54 @@ Make both buckets **public** for read access.
 
    Find these values in your Supabase project settings under "API".
 
-### 5. Seed Test Data (Optional)
+### 5. Create Admin User
+
+To create the admin user with full platform access:
+
+1. **Register the admin account**:
+   - Go to your Supabase Dashboard → Authentication → Users
+   - Click "Add user" → "Create new user"
+   - Email: `admin@gmail.com`
+   - Password: `Test1234`
+   - Auto Confirm User: **Yes** (check this box)
+   - Click "Create user"
+
+2. **Assign admin role via SQL**:
+   - Go to SQL Editor in Supabase
+   - Run this query (replace `admin@gmail.com` if you used a different email):
+   
+   ```sql
+   -- Get the admin user's ID and assign admin role
+   with admin_user as (
+     select id from auth.users where email = 'admin@gmail.com'
+   ),
+   admin_role as (
+     select id from public.roles where name = 'admin'
+   )
+   insert into public.user_roles (user_id, role_id, assigned_at)
+   select admin_user.id, admin_role.id, now()
+   from admin_user, admin_role
+   on conflict (user_id, role_id) do nothing;
+   
+   -- Create/update user profile
+   insert into public.users (id, email, full_name, phone, role, created_at, updated_at)
+   select id, email, 'Administrator', '+1234567890', 'admin', now(), now()
+   from auth.users
+   where email = 'admin@gmail.com'
+   on conflict (id) do update
+   set role = 'admin', full_name = 'Administrator';
+   ```
+
+3. **Verify admin access**:
+   - Login to the app with `admin@gmail.com` / `Test1234`
+   - You should see the "Dashboard" link in the header
+   - Dashboard gives access to moderate ads and manage users
+
+### 6. Seed Test Data (Optional)
 
 Run `supabase/seed.sql` to create test categories and sample data.
 
-### 6. Start Development Server
+### 7. Start Development Server
 
 ```bash
 npm install

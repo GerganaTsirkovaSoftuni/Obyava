@@ -19,15 +19,15 @@ const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif',
  */
 export function validateImageFile(file) {
   if (!file) {
-    return { valid: false, error: 'Няма избран файл' };
+    return { valid: false, error: 'No file selected' };
   }
 
   if (file.size > MAX_FILE_SIZE) {
-    return { valid: false, error: `Файлът е твърде голям. Максимум ${MAX_FILE_SIZE / 1024 / 1024}MB` };
+    return { valid: false, error: `File is too large. Maximum is ${MAX_FILE_SIZE / 1024 / 1024}MB` };
   }
 
   if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-    return { valid: false, error: 'Невалиден тип файл. Разрешени са само: JPG, PNG, GIF, WEBP' };
+    return { valid: false, error: 'Invalid file type. Allowed: JPG, PNG, GIF, WEBP' };
   }
 
   return { valid: true };
@@ -41,11 +41,26 @@ export function validateImageFile(file) {
  */
 export async function uploadAdImages(advertisementUuid, files) {
   if (!files || files.length === 0) {
-    throw new Error('Няма файлове за качване');
+    throw new Error('No files to upload');
   }
 
   if (files.length > 5) {
-    throw new Error('Можете да качите максимум 5 снимки');
+    throw new Error('You can upload up to 5 images');
+  }
+
+  // Check existing images count
+  const { data: existingImages, error: countError } = await supabase
+    .from('advertisement_images')
+    .select('uuid')
+    .eq('advertisement_uuid', advertisementUuid);
+
+  if (countError) {
+    throw new Error('Error checking existing images: ' + countError.message);
+  }
+
+  const existingCount = existingImages?.length || 0;
+  if (existingCount + files.length > 5) {
+    throw new Error(`Cannot upload ${files.length} images. You already have ${existingCount} image(s). Maximum is 5 images per advertisement.`);
   }
 
   const uploadedImages = [];
@@ -73,7 +88,7 @@ export async function uploadAdImages(advertisementUuid, files) {
 
     if (storageError) {
       console.error('Storage upload error:', storageError);
-      throw new Error('Грешка при качване на снимка: ' + storageError.message);
+      throw new Error('Error uploading image: ' + storageError.message);
     }
 
     // Get public URL
@@ -87,7 +102,7 @@ export async function uploadAdImages(advertisementUuid, files) {
       .insert([{
         advertisement_uuid: advertisementUuid,
         file_path: publicUrl,
-        position: i
+        position: existingCount + i
       }])
       .select()
       .single();
@@ -96,7 +111,7 @@ export async function uploadAdImages(advertisementUuid, files) {
       console.error('Database insert error:', dbError);
       // Try to cleanup uploaded file
       await supabase.storage.from('advertisement-images').remove([fileName]);
-      throw new Error('Грешка при записване на снимка: ' + dbError.message);
+      throw new Error('Error saving image: ' + dbError.message);
     }
 
     uploadedImages.push(imageRecord);
@@ -134,7 +149,7 @@ export async function deleteAdImages(advertisementUuid, imageUuids) {
 
   if (dbError) {
     console.error('Error deleting image records:', dbError);
-    throw new Error('Грешка при изтриване на снимки: ' + dbError.message);
+    throw new Error('Error deleting images: ' + dbError.message);
   }
 
   // Delete files from storage
@@ -166,7 +181,7 @@ export async function deleteSingleImage(imageUuid) {
     .single();
 
   if (!image) {
-    throw new Error('Снимката не е намерена');
+    throw new Error('Image not found');
   }
 
   await deleteAdImages(image.advertisement_uuid, [imageUuid]);
@@ -185,7 +200,7 @@ export async function uploadAvatar(file) {
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    throw new Error('Потребителят не е влязъл в системата');
+    throw new Error('User is not logged in');
   }
 
   // Generate file name
@@ -202,7 +217,7 @@ export async function uploadAvatar(file) {
 
   if (error) {
     console.error('Avatar upload error:', error);
-    throw new Error('Грешка при качване на профилна снимка: ' + error.message);
+    throw new Error('Error uploading profile image: ' + error.message);
   }
 
   // Get public URL
@@ -218,7 +233,7 @@ export async function uploadAvatar(file) {
 
   if (updateError) {
     console.error('Error updating profile with avatar:', updateError);
-    throw new Error('Грешка при актуализиране на профила: ' + updateError.message);
+    throw new Error('Error updating profile: ' + updateError.message);
   }
 
   return publicUrl;
@@ -238,7 +253,7 @@ export async function getAdImages(advertisementUuid) {
 
   if (error) {
     console.error('Get ad images error:', error);
-    throw new Error('Грешка при зареждане на снимки: ' + error.message);
+    throw new Error('Error loading images: ' + error.message);
   }
 
   return data || [];

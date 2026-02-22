@@ -70,9 +70,11 @@
   background: rgba(220, 53, 69, 1);
 }
 
-.btn-lg {
-  padding: 0.75rem 1.5rem;
-  font-weight: 500;
+/* Loading spinner size for form buttons */
+.create-ad-page .btn .spinner-border {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.15em;
 }
 
 .create-ad-page .btn-primary {

@@ -1,13 +1,22 @@
 import './profilePage.css';
 import template from './profilePage.html?raw';
-import { getUserProfile, updateUserProfile, updatePassword, deleteAccount } from '../../services/authService.js';
+import { getCurrentUser, getUserProfile, updateUserProfile, updatePassword, deleteAccount } from '../../services/authService.js';
 import { getUserAds, deleteAdvertisement, getUserAdStats } from '../../services/adsService.js';
+import { confirm, alert } from '../../services/modalService.js';
+import {
+  validateRequired,
+  validatePhoneField,
+  validatePassword,
+  validatePasswordConfirm,
+  clearFormErrors,
+  addRealTimeValidation
+} from '../../services/validationService.js';
 
 const statusTranslations = {
-  'Draft': 'Чернова',
-  'Pending': 'Чакаща одобрение',
-  'Published': 'Публикувана',
-  'Archived': 'Архивирана'
+  'Draft': 'Draft',
+  'Pending': 'Pending Approval',
+  'Published': 'Published',
+  'Archived': 'Archived'
 };
 
 function createUserAdCard(ad, navigate) {
@@ -22,7 +31,7 @@ function createUserAdCard(ad, navigate) {
         </div>
         <div class="col">
           <h5 class="user-ad-title">${ad.title}</h5>
-          <p class="user-ad-price mb-2">${ad.price ? ad.price + ' лв.' : 'По договаряне'}</p>
+          <p class="user-ad-price mb-2">${ad.price ? ad.price + ' EUR' : 'Negotiable'}</p>
           <span class="status-badge status-${ad.status}">${statusTranslations[ad.status]}</span>
         </div>
         <div class="col-auto">
@@ -61,14 +70,15 @@ function createUserAdCard(ad, navigate) {
   const deleteBtn = card.querySelector('.delete-btn');
   if (deleteBtn) {
     deleteBtn.addEventListener('click', async () => {
-      if (confirm('Сигурни ли сте, че искате да изтриете тази обява?')) {
+      const confirmed = await confirm('Are you sure you want to delete this advertisement?', 'Delete Advertisement');
+      if (confirmed) {
         try {
           await deleteAdvertisement(ad.uuid);
           card.remove();
-          alert('Обявата е изтрита успешно');
+          await alert('Advertisement deleted successfully', 'Success', 'success');
         } catch (error) {
           console.error('Error deleting ad:', error);
-          alert('Грешка при изтриване на обявата: ' + error.message);
+          await alert('Error deleting advertisement: ' + error.message, 'Error', 'error');
         }
       }
     });
@@ -78,11 +88,24 @@ function createUserAdCard(ad, navigate) {
 }
 
 async function loadUserProfile() {
-  const profile = await getUserProfile();
+  // First get the current authenticated user
+  const { user, error: authError } = await getCurrentUser();
+  
+  if (authError || !user) {
+    throw new Error('You are not logged in');
+  }
+  
+  // Then fetch their profile using the user ID
+  const { profile, error: profileError } = await getUserProfile(user.id);
+  
+  if (profileError || !profile) {
+    throw new Error('Error loading profile');
+  }
+  
   return {
     id: profile.id,
     full_name: profile.full_name,
-    email: profile.email,
+    email: user.email,
     phone: profile.phone,
     avatar_url: profile.avatar_url
   };
@@ -189,70 +212,99 @@ export function renderProfilePage({ navigate }) {
   // Initial load
   displayUserAds();
 
+  // Get form inputs for validation
+  const updateFullNameInput = updateProfileForm.querySelector('#updateFullName');
+  const updatePhoneInput = updateProfileForm.querySelector('#updatePhone');
+  const currentPasswordInput = changePasswordForm.querySelector('#currentPassword');
+  const newPasswordInput = changePasswordForm.querySelector('#newPassword');
+  const confirmNewPasswordInput = changePasswordForm.querySelector('#confirmNewPassword');
+
+  // Add real-time validation for profile form
+  addRealTimeValidation(updateFullNameInput, (input) => validateRequired(input, 'Full name'));
+  addRealTimeValidation(updatePhoneInput, validatePhoneField);
+
+  // Add real-time validation for password form
+  addRealTimeValidation(currentPasswordInput, (input) => validateRequired(input, 'Current password'));
+  addRealTimeValidation(newPasswordInput, validatePassword);
+  addRealTimeValidation(confirmNewPasswordInput, (input) => validatePasswordConfirm(input, newPasswordInput.value));
+
   // Update profile form
   updateProfileForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    clearFormErrors(updateProfileForm);
+
+    // Validate fields
+    const isFullNameValid = validateRequired(updateFullNameInput, 'Full name');
+    const isPhoneValid = validatePhoneField(updatePhoneInput);
+
+    if (!isFullNameValid || !isPhoneValid) {
+      return;
+    }
+
     const formData = new FormData(updateProfileForm);
     
     try {
       await updateUserProfile({
-        full_name: formData.get('fullName'),
-        phone: formData.get('phone')
+        full_name: formData.get('fullName').trim(),
+        phone: formData.get('phone').trim()
       });
       
-      alert('Профилът е обновен успешно!');
+      await alert('Profile updated successfully!', 'Success', 'success');
       // Reload profile data
       const user = await loadUserProfile();
       userName.textContent = user.full_name;
       userPhone.textContent = user.phone;
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Грешка при обновяване на профила: ' + error.message);
+      await alert('Error updating profile: ' + error.message, 'Error', 'error');
     }
   });
 
   // Change password form
   changePasswordForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    clearFormErrors(changePasswordForm);
+
     const formData = new FormData(changePasswordForm);
-    const newPassword = formData.get('newPassword');
-    const confirmNewPassword = formData.get('confirmNewPassword');
-    
-    if (newPassword !== confirmNewPassword) {
-      alert('Паролите не съвпадат');
-      return;
-    }
-    
-    if (newPassword.length < 6) {
-      alert('Паролата трябва да е поне 6 символа');
+    const currentPassword = formData.get('currentPassword').trim();
+    const newPassword = formData.get('newPassword').trim();
+    const confirmNewPassword = formData.get('confirmNewPassword').trim();
+
+    // Validate fields
+    const isCurrentPasswordValid = validateRequired(currentPasswordInput, 'Current password');
+    const isNewPasswordValid = validatePassword(newPasswordInput);
+    const isConfirmPasswordValid = validatePasswordConfirm(confirmNewPasswordInput, newPassword);
+
+    if (!isCurrentPasswordValid || !isNewPasswordValid || !isConfirmPasswordValid) {
       return;
     }
     
     try {
       await updatePassword(newPassword);
-      alert('Паролата е сменена успешно!');
+      await alert('Password changed successfully!', 'Success', 'success');
       changePasswordForm.reset();
+      clearFormErrors(changePasswordForm);
     } catch (error) {
       console.error('Error changing password:', error);
-      alert('Грешка при смяна на паролата: ' + error.message);
+      await alert('Error changing password: ' + error.message, 'Error', 'error');
     }
   });
 
   // Delete account
   deleteAccountBtn.addEventListener('click', async () => {
-    const confirmed = confirm('ВНИМАНИЕ: Това действие е необратимо! Всички ваши обяви също ще бъдат изтрити. Сигурни ли сте?');
+    const confirmed = await confirm('WARNING: This action is irreversible. All your advertisements will also be deleted. Are you sure?', 'Delete Account');
     
     if (confirmed) {
-      const doubleConfirm = confirm('Моля, потвърдете отново. Наистина ли искате да изтриете профила си?');
+      const doubleConfirm = await confirm('Please confirm again. Do you really want to delete your profile?', 'Final Confirmation');
       
       if (doubleConfirm) {
         try {
           await deleteAccount();
-          alert('Профилът е изтрит');
+          await alert('Profile deleted', 'Success', 'success');
           navigate('/');
         } catch (error) {
           console.error('Error deleting account:', error);
-          alert('Грешка при изтриване на профила: ' + error.message);
+          await alert('Error deleting profile: ' + error.message, 'Error', 'error');
         }
       }
     }
