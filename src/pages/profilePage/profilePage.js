@@ -1,7 +1,7 @@
 import './profilePage.css';
 import template from './profilePage.html?raw';
 import { getCurrentUser, getUserProfile, updateUserProfile, updatePassword, deleteAccount } from '../../services/authService.js';
-import { getUserAds, deleteAdvertisement, getUserAdStats } from '../../services/adsService.js';
+import { getUserAds, deleteAdvertisement, archiveAdvertisement, getUserAdStats } from '../../services/adsService.js';
 import { confirm, alert } from '../../services/modalService.js';
 import {
   validateRequired,
@@ -39,12 +39,17 @@ function createUserAdCard(ad, navigate) {
             <button class="btn btn-sm btn-outline-primary view-btn" data-uuid="${ad.uuid}">
               <i class="bi bi-eye"></i>
             </button>
-            ${ad.status === 'Draft' ? `
+            ${ad.status !== 'Archived' ? `
               <button class="btn btn-sm btn-outline-primary edit-btn" data-uuid="${ad.uuid}">
                 <i class="bi bi-pencil"></i>
               </button>
             ` : ''}
-            ${ad.status === 'Draft' || ad.status === 'Pending' ? `
+            ${ad.status === 'Published' || ad.status === 'Pending' ? `
+              <button class="btn btn-sm btn-outline-warning archive-btn" data-uuid="${ad.uuid}" title="Archive">
+                <i class="bi bi-archive"></i>
+              </button>
+            ` : ''}
+            ${ad.status !== 'Published' && ad.status !== 'Archived' ? `
               <button class="btn btn-sm btn-outline-danger delete-btn" data-uuid="${ad.uuid}">
                 <i class="bi bi-trash"></i>
               </button>
@@ -67,15 +72,36 @@ function createUserAdCard(ad, navigate) {
     });
   }
   
+  const archiveBtn = card.querySelector('.archive-btn');
+  if (archiveBtn) {
+    archiveBtn.addEventListener('click', async () => {
+      const confirmed = await confirm('Are you sure you want to archive this advertisement? Archived ads won\'t be visible to other users.', 'Archive Advertisement');
+      if (confirmed) {
+        try {
+          await archiveAdvertisement(ad.uuid);
+          card.remove();
+          await alert('Advertisement archived successfully', 'Success', 'success');
+          // Refresh the ad list to update counts
+          window.location.reload();
+        } catch (error) {
+          console.error('Error archiving ad:', error);
+          await alert('Error archiving advertisement: ' + error.message, 'Error', 'error');
+        }
+      }
+    });
+  }
+  
   const deleteBtn = card.querySelector('.delete-btn');
   if (deleteBtn) {
     deleteBtn.addEventListener('click', async () => {
-      const confirmed = await confirm('Are you sure you want to delete this advertisement?', 'Delete Advertisement');
+      const confirmed = await confirm('Are you sure you want to delete this advertisement? This action cannot be undone.', 'Delete Advertisement');
       if (confirmed) {
         try {
           await deleteAdvertisement(ad.uuid);
           card.remove();
           await alert('Advertisement deleted successfully', 'Success', 'success');
+          // Refresh the ad list to update counts
+          window.location.reload();
         } catch (error) {
           console.error('Error deleting ad:', error);
           await alert('Error deleting advertisement: ' + error.message, 'Error', 'error');

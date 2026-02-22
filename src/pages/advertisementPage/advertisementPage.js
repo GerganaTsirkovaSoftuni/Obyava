@@ -55,7 +55,6 @@ export function renderAdvertisementPage({ navigate, params }) {
   const adStatus = section.querySelector('#adStatus');
   const adBreadcrumb = section.querySelector('#adBreadcrumb');
   const carouselImages = section.querySelector('#carouselImages');
-  const moreSellerAdsBtn = section.querySelector('#moreSellerAdsBtn');
   const sellerName = section.querySelector('#sellerName');
   const sellerPhone = section.querySelector('#sellerPhone');
   const sellerEmail = section.querySelector('#sellerEmail');
@@ -64,6 +63,8 @@ export function renderAdvertisementPage({ navigate, params }) {
   const sellerContactActions = section.querySelector('#sellerContactActions');
   const callSellerBtn = section.querySelector('#callSellerBtn');
   const emailSellerBtn = section.querySelector('#emailSellerBtn');
+  const moreSellerAdsSection = section.querySelector('#moreSellerAdsSection');
+  const moreSellerAdsBtn = section.querySelector('#moreSellerAdsBtn');
 
   const ownerActions = section.querySelector('#ownerActions');
   const adminActions = section.querySelector('#adminActions');
@@ -101,34 +102,11 @@ export function renderAdvertisementPage({ navigate, params }) {
       sellerEmailRow.classList.toggle('d-none', !hasEmail);
 
       const normalizedPhone = hasPhone
-        ? ad.seller.phone.replace(/[^+\d]/g, '')
+        ? ad.seller.phone.replace(/[^\+\d]/g, '')
         : '';
 
-      if (hasPhone && normalizedPhone) {
-        callSellerBtn.href = `tel:${normalizedPhone}`;
-        callSellerBtn.classList.remove('d-none');
-      } else {
-        callSellerBtn.classList.add('d-none');
-      }
-
-      if (hasEmail) {
-        emailSellerBtn.href = `mailto:${ad.seller.email}`;
-        emailSellerBtn.classList.remove('d-none');
-      } else {
-        emailSellerBtn.classList.add('d-none');
-      }
-
-      sellerContactActions.classList.toggle('d-none', !(hasPhone || hasEmail));
-
-      if (ad.seller.id) {
-        moreSellerAdsBtn.classList.remove('d-none');
-        moreSellerAdsBtn.onclick = () => {
-          navigate(`/user/${ad.seller.id}/ads`);
-        };
-      } else {
-        moreSellerAdsBtn.classList.add('d-none');
-      }
-
+      // Contact buttons will be shown/hidden based on isOwner check below
+      
       // Images (if multiple)
       if (ad.images && ad.images.length > 0) {
         carouselImages.innerHTML = ad.images.map((img, index) => `
@@ -144,6 +122,39 @@ export function renderAdvertisementPage({ navigate, params }) {
       const isAdmin = session && currentUserId ? (await isUserAdmin(currentUserId)).isAdmin : false;
       const isOwner = currentUserId === ad.seller.id;
 
+      // Show contact buttons only if user is NOT the owner
+      if (!isOwner) {
+        const normalizedPhone = hasPhone
+          ? ad.seller.phone.replace(/[^\+\d]/g, '')
+          : '';
+
+        if (hasPhone && normalizedPhone) {
+          callSellerBtn.href = `tel:${normalizedPhone}`;
+          callSellerBtn.classList.remove('d-none');
+        } else {
+          callSellerBtn.classList.add('d-none');
+        }
+
+        if (hasEmail) {
+          emailSellerBtn.href = `mailto:${ad.seller.email}`;
+          emailSellerBtn.classList.remove('d-none');
+        } else {
+          emailSellerBtn.classList.add('d-none');
+        }
+
+        sellerContactActions.classList.toggle('d-none', !(hasPhone || hasEmail));
+        
+        // Show "More from this seller" button for non-owners
+        moreSellerAdsSection.classList.remove('d-none');
+        moreSellerAdsBtn.addEventListener('click', () => {
+          navigate(`/user/${ad.seller.id}/ads`);
+        });
+      } else {
+        // Hide contact buttons and "More from seller" if user is the owner
+        sellerContactActions.classList.add('d-none');
+        moreSellerAdsSection.classList.add('d-none');
+      }
+
       if (isOwner && ad.status !== 'Archived') {
         ownerActions.classList.remove('d-none');
         
@@ -151,7 +162,7 @@ export function renderAdvertisementPage({ navigate, params }) {
         if (ad.status === 'Draft') {
           section.querySelector('#publishBtn').classList.remove('d-none');
         }
-        if (ad.status === 'Published') {
+        if (ad.status === 'Published' || ad.status === 'Pending') {
           section.querySelector('#archiveBtn').classList.remove('d-none');
         }
 
@@ -161,7 +172,7 @@ export function renderAdvertisementPage({ navigate, params }) {
         });
 
         section.querySelector('#deleteBtn')?.addEventListener('click', async () => {
-          const confirmed = await confirm('Are you sure you want to delete this advertisement?', 'Delete Advertisement');
+          const confirmed = await confirm('Are you sure you want to delete this advertisement? This action cannot be undone.', 'Delete Advertisement');
           if (confirmed) {
             try {
               await deleteAdvertisement(ad.uuid);
@@ -186,11 +197,11 @@ export function renderAdvertisementPage({ navigate, params }) {
         });
 
         section.querySelector('#archiveBtn')?.addEventListener('click', async () => {
-          const confirmed = await confirm('Are you sure you want to archive this advertisement?', 'Archive Advertisement');
+          const confirmed = await confirm('Are you sure you want to archive this advertisement? Archived ads won\'t be visible to other users.', 'Archive Advertisement');
           if (confirmed) {
             try {
               await archiveAdvertisement(ad.uuid);
-              await alert('Advertisement archived', 'Success', 'success');
+              await alert('Advertisement archived successfully', 'Success', 'success');
               displayAdvertisement(); // Reload to show updated status
             } catch (error) {
               console.error('Error archiving ad:', error);

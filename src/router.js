@@ -11,31 +11,16 @@ import { renderUserAdsPage } from './pages/userAdsPage/userAdsPage.js';
 const router = new Navigo('/', { hash: false });
 const appName = 'Obyava';
 
-function getRoutePreloader() {
-  let preloader = document.querySelector('.app-route-preloader');
-
-  if (!preloader) {
-    preloader = document.createElement('div');
-    preloader.className = 'app-route-preloader d-none';
-    preloader.innerHTML = `
-      <div class="app-route-preloader-inner">
-        <div class="app-route-preloader-ring"></div>
-        <div class="app-route-preloader-glow"></div>
-        <p class="app-route-preloader-text mb-0">Loading</p>
-      </div>
-    `;
-    document.body.appendChild(preloader);
-  }
-
-  return preloader;
-}
-
 function showRoutePreloader() {
-  getRoutePreloader().classList.remove('d-none');
+  if (window.preloaderControl) {
+    window.preloaderControl.showPreloader();
+  }
 }
 
 function hideRoutePreloader() {
-  getRoutePreloader().classList.add('d-none');
+  if (window.preloaderControl) {
+    window.preloaderControl.hidePreloader();
+  }
 }
 
 const routeMap = [
