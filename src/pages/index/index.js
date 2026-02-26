@@ -39,8 +39,11 @@ async function loadAdvertisements(searchQuery = '', categoryId = '') {
       limit: 200
     });
 
+    console.log('📢 Raw ads from API:', ads);
+    console.log('📊 Total ads fetched:', ads.length);
+
     // Format data for display
-    return ads.map(ad => ({
+    const formattedAds = ads.map(ad => ({
       uuid: ad.uuid,
       title: ad.title,
       description: ad.description,
@@ -50,6 +53,9 @@ async function loadAdvertisements(searchQuery = '', categoryId = '') {
       image_url: ad.advertisement_images?.[0]?.file_path || null,
       status: ad.status
     }));
+
+    console.log('📋 Formatted ads for display:', formattedAds);
+    return formattedAds;
   } catch (error) {
     console.error('Error loading advertisements:', error);
     return [];
@@ -102,17 +108,21 @@ export function renderIndexPage({ navigate }) {
   populateCategories(section);
 
   function renderAds() {
+    console.log('🎨 renderAds called - allAds count:', allAds.length, 'visibleCount:', visibleAdsCount);
     adsGrid.innerHTML = '';
 
     if (allAds.length === 0) {
+      console.log('❌ No ads to display - showing empty state');
       emptyState.classList.remove('d-none');
       paginationWrap.classList.add('d-none');
       return;
     }
 
+    console.log('✅ Rendering', Math.min(visibleAdsCount, allAds.length), 'ads');
     emptyState.classList.add('d-none');
 
-    allAds.slice(0, visibleAdsCount).forEach(ad => {
+    allAds.slice(0, visibleAdsCount).forEach((ad, index) => {
+      console.log(`  Card ${index}:`, ad.title);
       const adCard = createAdCard(ad);
       adsGrid.appendChild(adCard);
     });
