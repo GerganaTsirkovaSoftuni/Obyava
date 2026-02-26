@@ -34,9 +34,9 @@ on conflict (user_id, role_id) do nothing;
 -- =============================
 -- 3) Ensure user profiles exist in public.users
 -- =============================
-insert into public.users (id, full_name, phone, avatar_url, role, created_at, updated_at)
-select u.id, split_part(u.email, '@', 1), '+1' || (10000000 + (row_number() over (order by u.id) * 1000))::text, 
-       'https://i.pravatar.cc/150?u=' || u.email, 'user', now(), now()
+insert into public.users (id, full_name, phone, role, created_at, updated_at)
+select u.id, split_part(u.email, '@', 1), '+1' || (10000000 + (row_number() over (order by u.id) * 1000))::text,
+       'user', now(), now()
 from auth.users u
 where u.email in ('johndoe@gmail.com', 'maria@gmail.com', 'user@gmail.com')
 on conflict (id) do nothing;

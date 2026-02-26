@@ -54,6 +54,11 @@ export function renderLoginPage({ navigate }) {
     } catch (error) {
       errorMessage.textContent = error.message || 'Login failed. Please check your email and password.';
       errorMessage.classList.remove('d-none');
+
+      emailInput.classList.remove('is-valid');
+      passwordInput.classList.remove('is-valid');
+      emailInput.classList.add('is-invalid');
+      passwordInput.classList.add('is-invalid');
       
       // Re-enable submit button
       submitBtn.disabled = false;

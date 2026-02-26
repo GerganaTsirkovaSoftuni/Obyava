@@ -3,6 +3,7 @@ import template from './profilePage.html?raw';
 import { getCurrentUser, getUserProfile, updateUserProfile, updatePassword, deleteAccount } from '../../services/authService.js';
 import { getUserAds, deleteAdvertisement, archiveAdvertisement, getUserAdStats } from '../../services/adsService.js';
 import { confirm, alert } from '../../services/modalService.js';
+import { escapeHtml } from '../../services/sanitizeService.js';
 import {
   validateRequired,
   validatePhoneField,
@@ -19,38 +20,44 @@ const statusTranslations = {
   'Archived': 'Archived'
 };
 
+const PAGE_SIZE = 8;
+
 function createUserAdCard(ad, navigate) {
   const card = document.createElement('div');
   card.className = 'card user-ad-card shadow-sm';
+
+  const safeUuid = escapeHtml(ad.uuid);
+  const safeTitle = escapeHtml(ad.title);
+  const safeImageUrl = escapeHtml(ad.image_url || '/placeholder.png');
   
   card.innerHTML = `
     <div class="card-body">
       <div class="row align-items-center">
         <div class="col-auto">
-          <img src="${ad.image_url || '/placeholder.png'}" class="user-ad-image" alt="${ad.title}">
+          <img src="${safeImageUrl}" class="user-ad-image" alt="${safeTitle}">
         </div>
         <div class="col">
-          <h5 class="user-ad-title">${ad.title}</h5>
+          <h5 class="user-ad-title">${safeTitle}</h5>
           <p class="user-ad-price mb-2">${ad.price ? ad.price + ' EUR' : 'Negotiable'}</p>
           <span class="status-badge status-${ad.status}">${statusTranslations[ad.status]}</span>
         </div>
         <div class="col-auto">
           <div class="user-ad-actions">
-            <button class="btn btn-sm btn-outline-primary view-btn" data-uuid="${ad.uuid}">
+            <button class="btn btn-sm btn-outline-primary view-btn" data-uuid="${safeUuid}">
               <i class="bi bi-eye"></i>
             </button>
             ${ad.status !== 'Archived' ? `
-              <button class="btn btn-sm btn-outline-primary edit-btn" data-uuid="${ad.uuid}">
+              <button class="btn btn-sm btn-outline-primary edit-btn" data-uuid="${safeUuid}">
                 <i class="bi bi-pencil"></i>
               </button>
             ` : ''}
             ${ad.status === 'Published' || ad.status === 'Pending' ? `
-              <button class="btn btn-sm btn-outline-warning archive-btn" data-uuid="${ad.uuid}" title="Archive">
+              <button class="btn btn-sm btn-outline-warning archive-btn" data-uuid="${safeUuid}" title="Archive">
                 <i class="bi bi-archive"></i>
               </button>
             ` : ''}
             ${ad.status !== 'Published' && ad.status !== 'Archived' ? `
-              <button class="btn btn-sm btn-outline-danger delete-btn" data-uuid="${ad.uuid}">
+              <button class="btn btn-sm btn-outline-danger delete-btn" data-uuid="${safeUuid}">
                 <i class="bi bi-trash"></i>
               </button>
             ` : ''}
@@ -132,13 +139,12 @@ async function loadUserProfile() {
     id: profile.id,
     full_name: profile.full_name,
     email: user.email,
-    phone: profile.phone,
-    avatar_url: profile.avatar_url
+    phone: profile.phone
   };
 }
 
-async function loadUserAds(statusFilter = '') {
-  const filters = statusFilter ? { status: statusFilter } : {};
+async function loadUserAds(statusFilter = '', offset = 0, limit = PAGE_SIZE + 1) {
+  const filters = statusFilter ? { status: statusFilter, offset, limit } : { offset, limit };
   const ads = await getUserAds(filters);
   
   return ads.map(ad => ({
@@ -166,77 +172,114 @@ export function renderProfilePage({ navigate }) {
   const userAdsList = section.querySelector('#userAdsList');
   const loadingAds = section.querySelector('#loadingAds');
   const emptyAds = section.querySelector('#emptyAds');
+  const profileAdsPaginationWrap = section.querySelector('#profileAdsPaginationWrap');
+  const profileAdsLoadMoreBtn = section.querySelector('#profileAdsLoadMoreBtn');
   const createNewAdBtn = section.querySelector('#createNewAdBtn');
   const statusFilters = section.querySelectorAll('input[name="statusFilter"]');
   
   const updateProfileForm = section.querySelector('#updateProfileForm');
+  const updateProfileSubmitBtn = section.querySelector('#updateProfileSubmitBtn');
   const changePasswordForm = section.querySelector('#changePasswordForm');
   const deleteAccountBtn = section.querySelector('#deleteAccountBtn');
+
+  let activeStatusFilter = '';
+  let adsOffset = 0;
+  let hasMoreAds = false;
+  let isLoadingMoreAds = false;
+  let originalProfileValues = null;
 
   // Create new ad button
   createNewAdBtn.addEventListener('click', () => {
     navigate('/create-advertisement');
   });
 
-  // Load user profile
-  loadUserProfile().then(user => {
-    userName.textContent = user.full_name;
-    userEmail.textContent = user.email;
-    userPhone.textContent = user.phone;
-    
-    // Populate settings form
-    section.querySelector('#updateFullName').value = user.full_name;
-    section.querySelector('#updatePhone').value = user.phone;
-    section.querySelector('#updateEmail').value = user.email;
-  });
-
   // Display user ads function
-  async function displayUserAds(statusFilter = '') {
-    loadingAds.classList.remove('d-none');
-    emptyAds.classList.add('d-none');
-    
-    // Clear existing ads except loading/empty states
-    const existingCards = userAdsList.querySelectorAll('.card.user-ad-card');
-    existingCards.forEach(card => card.remove());
+  async function displayUserAds(statusFilter = '', reset = true) {
+    if (reset) {
+      adsOffset = 0;
+      hasMoreAds = false;
+      loadingAds.classList.remove('d-none');
+      emptyAds.classList.add('d-none');
+      profileAdsPaginationWrap.classList.add('d-none');
+
+      const existingCards = userAdsList.querySelectorAll('.card.user-ad-card');
+      existingCards.forEach(card => card.remove());
+    }
     
     try {
-      const ads = await loadUserAds(statusFilter);
-      
-      loadingAds.classList.add('d-none');
-      
-      if (ads.length === 0) {
+      const adsChunk = await loadUserAds(statusFilter, adsOffset, PAGE_SIZE + 1);
+      const ads = adsChunk.slice(0, PAGE_SIZE);
+      hasMoreAds = adsChunk.length > PAGE_SIZE;
+      adsOffset += ads.length;
+
+      if (reset) {
+        loadingAds.classList.add('d-none');
+      }
+
+      if (reset && ads.length === 0) {
         emptyAds.classList.remove('d-none');
+        profileAdsPaginationWrap.classList.add('d-none');
         return;
       }
+
+      emptyAds.classList.add('d-none');
       
       // Update stats using dedicated API
-      const stats = await getUserAdStats();
-      totalAds.textContent = stats.total;
-      publishedAds.textContent = stats.published;
-      pendingAds.textContent = stats.pending;
-      draftAds.textContent = stats.drafts;
+      if (reset) {
+        const stats = await getUserAdStats();
+        totalAds.textContent = stats.total;
+        publishedAds.textContent = stats.published;
+        pendingAds.textContent = stats.pending;
+        draftAds.textContent = stats.drafts;
+      }
       
       ads.forEach(ad => {
         const adCard = createUserAdCard(ad, navigate);
         userAdsList.appendChild(adCard);
       });
+
+      if (hasMoreAds) {
+        profileAdsPaginationWrap.classList.remove('d-none');
+      } else {
+        profileAdsPaginationWrap.classList.add('d-none');
+      }
       
     } catch (error) {
       console.error('Error loading ads:', error);
       loadingAds.classList.add('d-none');
       emptyAds.classList.remove('d-none');
+      profileAdsPaginationWrap.classList.add('d-none');
     }
   }
 
   // Filter change handlers
   statusFilters.forEach(filter => {
     filter.addEventListener('change', (e) => {
-      displayUserAds(e.target.value);
+      activeStatusFilter = e.target.value;
+      displayUserAds(activeStatusFilter, true);
     });
   });
 
+  profileAdsLoadMoreBtn.addEventListener('click', async () => {
+    if (isLoadingMoreAds || !hasMoreAds) {
+      return;
+    }
+
+    isLoadingMoreAds = true;
+    profileAdsLoadMoreBtn.disabled = true;
+    profileAdsLoadMoreBtn.textContent = 'Loading...';
+
+    try {
+      await displayUserAds(activeStatusFilter, false);
+    } finally {
+      isLoadingMoreAds = false;
+      profileAdsLoadMoreBtn.disabled = false;
+      profileAdsLoadMoreBtn.textContent = 'Load 8 More';
+    }
+  });
+
   // Initial load
-  displayUserAds();
+  displayUserAds(activeStatusFilter, true);
 
   // Get form inputs for validation
   const updateFullNameInput = updateProfileForm.querySelector('#updateFullName');
@@ -245,9 +288,55 @@ export function renderProfilePage({ navigate }) {
   const newPasswordInput = changePasswordForm.querySelector('#newPassword');
   const confirmNewPasswordInput = changePasswordForm.querySelector('#confirmNewPassword');
 
+  function getNormalizedProfileValues() {
+    return {
+      fullName: updateFullNameInput.value.trim(),
+      phone: updatePhoneInput.value.trim()
+    };
+  }
+
+  function updateProfileSaveButtonState() {
+    if (!originalProfileValues) {
+      updateProfileSubmitBtn.disabled = true;
+      return;
+    }
+
+    const currentValues = getNormalizedProfileValues();
+    const hasChanges =
+      currentValues.fullName !== originalProfileValues.fullName ||
+      currentValues.phone !== originalProfileValues.phone;
+
+    updateProfileSubmitBtn.disabled = !hasChanges;
+  }
+
+  async function syncProfileFormFromServer() {
+    const user = await loadUserProfile();
+    userName.textContent = user.full_name;
+    userEmail.textContent = user.email;
+    userPhone.textContent = user.phone || '';
+
+    updateFullNameInput.value = user.full_name || '';
+    updatePhoneInput.value = user.phone || '';
+    section.querySelector('#updateEmail').value = user.email;
+
+    originalProfileValues = {
+      fullName: (user.full_name || '').trim(),
+      phone: (user.phone || '').trim()
+    };
+
+    updateProfileSaveButtonState();
+  }
+
+  updateProfileSubmitBtn.disabled = true;
+  syncProfileFormFromServer().catch((error) => {
+    console.error('Error loading profile:', error);
+  });
+
   // Add real-time validation for profile form
   addRealTimeValidation(updateFullNameInput, (input) => validateRequired(input, 'Full name'));
   addRealTimeValidation(updatePhoneInput, validatePhoneField);
+  updateFullNameInput.addEventListener('input', updateProfileSaveButtonState);
+  updatePhoneInput.addEventListener('input', updateProfileSaveButtonState);
 
   // Add real-time validation for password form
   addRealTimeValidation(currentPasswordInput, (input) => validateRequired(input, 'Current password'));
@@ -257,6 +346,11 @@ export function renderProfilePage({ navigate }) {
   // Update profile form
   updateProfileForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    if (updateProfileSubmitBtn.disabled) {
+      return;
+    }
+
     clearFormErrors(updateProfileForm);
 
     // Validate fields
@@ -274,12 +368,18 @@ export function renderProfilePage({ navigate }) {
         full_name: formData.get('fullName').trim(),
         phone: formData.get('phone').trim()
       });
+
+      originalProfileValues = {
+        fullName: formData.get('fullName').trim(),
+        phone: formData.get('phone').trim()
+      };
+      updateProfileSaveButtonState();
       
       await alert('Profile updated successfully!', 'Success', 'success');
       // Reload profile data
       const user = await loadUserProfile();
       userName.textContent = user.full_name;
-      userPhone.textContent = user.phone;
+      userPhone.textContent = user.phone || '';
     } catch (error) {
       console.error('Error updating profile:', error);
       await alert('Error updating profile: ' + error.message, 'Error', 'error');
@@ -318,10 +418,18 @@ export function renderProfilePage({ navigate }) {
 
   // Delete account
   deleteAccountBtn.addEventListener('click', async () => {
-    const confirmed = await confirm('WARNING: This action is irreversible. All your advertisements will also be deleted. Are you sure?', 'Delete Account');
+    const confirmed = await confirm(
+      'WARNING: This action is irreversible. All your advertisements will also be deleted. Are you sure?',
+      'Delete Account',
+      { variant: 'warning' }
+    );
     
     if (confirmed) {
-      const doubleConfirm = await confirm('Please confirm again. Do you really want to delete your profile?', 'Final Confirmation');
+      const doubleConfirm = await confirm(
+        'Please confirm again. Do you really want to delete your profile?',
+        'Final Confirmation',
+        { variant: 'warning' }
+      );
       
       if (doubleConfirm) {
         try {

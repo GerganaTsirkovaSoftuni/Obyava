@@ -59,9 +59,60 @@
   border-bottom-color: #667eea;
 }
 
+.profile-page .btn-group .btn-outline-primary {
+  border: 2px solid transparent;
+  background: linear-gradient(#ffffff, #ffffff) padding-box, linear-gradient(135deg, #667eea 0%, #764ba2 100%) border-box;
+  color: #667eea;
+}
+
+.profile-page .btn-group .btn-outline-primary:hover {
+  border: 2px solid transparent;
+  background: linear-gradient(rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08)) padding-box,
+    linear-gradient(135deg, #667eea 0%, #764ba2 100%) border-box;
+  color: #667eea;
+}
+
+.profile-page .btn-check:checked + .btn-outline-primary,
+.profile-page .btn-group .btn-outline-primary.active,
+.profile-page .btn-group .btn-outline-primary:active {
+  border: 2px solid transparent;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) padding-box,
+    linear-gradient(135deg, #f093fb 0%, #f5576c 100%) border-box;
+  color: #ffffff;
+}
+
+.profile-page .btn-check:checked + .btn-outline-primary:hover {
+  color: #ffffff;
+}
+
+.profile-save-btn {
+  border: 2px solid transparent;
+}
+
+.profile-save-btn:not(:disabled) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.profile-save-btn:not(:disabled):hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.profile-save-btn:disabled {
+  background: #e5e7eb;
+  color: #374151;
+  border-color: #d1d5db;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
 .user-ad-card {
   transition: transform 0.2s, box-shadow 0.2s;
-  border: none;
+  border: 1px solid transparent;
   border-radius: 8px;
   margin-bottom: 1rem;
 }
@@ -69,6 +120,7 @@
 .user-ad-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: rgba(102, 126, 234, 0.25);
 }
 
 .user-ad-image {

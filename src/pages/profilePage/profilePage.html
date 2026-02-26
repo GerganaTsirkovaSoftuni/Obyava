@@ -120,8 +120,9 @@
         <!-- Ads List -->
         <div id="userAdsList">
           <div id="loadingAds" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
+            <div class="d-inline-flex flex-column align-items-center gap-2" role="status" aria-live="polite" aria-label="Loading">
+              <div class="spinner"></div>
+              <span class="preloader-text">Loading...</span>
             </div>
           </div>
           
@@ -129,6 +130,12 @@
             <i class="bi bi-inbox display-1 text-muted"></i>
             <p class="text-muted mt-3">No ads found</p>
           </div>
+        </div>
+
+        <div id="profileAdsPaginationWrap" class="text-center mt-4 d-none">
+          <button id="profileAdsLoadMoreBtn" class="btn btn-outline-primary px-4">
+            Load 8 More
+          </button>
         </div>
       </div>
 
@@ -147,7 +154,7 @@
                   
                   <div class="mb-3">
                     <label for="updatePhone" class="form-label">Phone</label>
-                    <input type="tel" class="form-control" id="updatePhone" name="phone">
+                    <input type="tel" class="form-control" id="updatePhone" name="phone" placeholder="+359 888 123 456">
                   </div>
                   
                   <div class="mb-3">
@@ -156,7 +163,7 @@
                     <div class="form-text">Email cannot be changed</div>
                   </div>
                   
-                  <button type="submit" class="btn btn-primary">
+                  <button type="submit" id="updateProfileSubmitBtn" class="btn btn-primary profile-save-btn" disabled>
                     <i class="bi bi-save me-2"></i>Save Changes
                   </button>
                 </form>

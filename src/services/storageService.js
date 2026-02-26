@@ -225,17 +225,6 @@ export async function uploadAvatar(file) {
     .from('user-avatars')
     .getPublicUrl(fileName);
 
-  // Update user profile
-  const { error: updateError } = await supabase
-    .from('users')
-    .update({ avatar_url: publicUrl })
-    .eq('id', user.id);
-
-  if (updateError) {
-    console.error('Error updating profile with avatar:', updateError);
-    throw new Error('Error updating profile: ' + updateError.message);
-  }
-
   return publicUrl;
 }
 

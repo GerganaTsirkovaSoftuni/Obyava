@@ -29,6 +29,9 @@
 
 #callSellerBtn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
   color: #fff !important;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
   border: none !important;
@@ -39,6 +42,9 @@
 
 #callSellerBtn:hover {
   background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
   color: #fff !important;
   box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
   transform: translateY(-2px);
@@ -47,6 +53,9 @@
 #callSellerBtn:active,
 #callSellerBtn:focus,
 #callSellerBtn:focus-visible {
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
   color: #fff !important;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
   text-decoration: none !important;
@@ -55,6 +64,9 @@
 
 #emailSellerBtn {
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
   color: #fff !important;
   box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
   border: none !important;
@@ -65,6 +77,9 @@
 
 #emailSellerBtn:hover {
   background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%) !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
   color: #fff !important;
   box-shadow: 0 6px 25px rgba(240, 147, 251, 0.5);
   transform: translateY(-2px);
@@ -73,6 +88,9 @@
 #emailSellerBtn:active,
 #emailSellerBtn:focus,
 #emailSellerBtn:focus-visible {
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
   color: #fff !important;
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
   text-decoration: none !important;

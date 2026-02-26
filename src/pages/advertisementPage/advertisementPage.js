@@ -20,6 +20,7 @@ async function loadAdvertisement(adUuid) {
     title: ad.title,
     description: ad.description,
     price: ad.price,
+    item_condition: ad.item_condition,
     category: ad.categories?.name || 'Unknown category',
     location: ad.location,
     status: ad.status,
@@ -50,6 +51,7 @@ export function renderAdvertisementPage({ navigate, params }) {
   const adDescription = section.querySelector('#adDescription');
   const adPrice = section.querySelector('#adPrice');
   const adCategory = section.querySelector('#adCategory');
+  const adCondition = section.querySelector('#adCondition');
   const adLocation = section.querySelector('#adLocation');
   const adDate = section.querySelector('#adDate');
   const adStatus = section.querySelector('#adStatus');
@@ -78,6 +80,7 @@ export function renderAdvertisementPage({ navigate, params }) {
       adDescription.textContent = ad.description;
       adPrice.textContent = ad.price ? `${ad.price} EUR` : 'Negotiable';
       adCategory.textContent = ad.category;
+      adCondition.textContent = ad.item_condition === 'new' ? 'Condition: New' : 'Condition: Used';
       adLocation.textContent = ad.location;
       adDate.textContent = new Date(ad.created_at).toLocaleDateString('en-US');
       

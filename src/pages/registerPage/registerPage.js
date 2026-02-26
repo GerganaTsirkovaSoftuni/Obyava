@@ -85,6 +85,27 @@ export function renderRegisterPage({ navigate }) {
     } catch (error) {
       errorMessage.textContent = error.message || 'Registration failed. Please try again.';
       errorMessage.classList.remove('d-none');
+
+      const normalizedMessage = (error?.message || '').toLowerCase();
+
+      if (normalizedMessage.includes('email') || normalizedMessage.includes('registered')) {
+        emailInput.classList.remove('is-valid');
+        emailInput.classList.add('is-invalid');
+      }
+
+      if (normalizedMessage.includes('password')) {
+        passwordInput.classList.remove('is-valid');
+        confirmPasswordInput.classList.remove('is-valid');
+        passwordInput.classList.add('is-invalid');
+        confirmPasswordInput.classList.add('is-invalid');
+      }
+
+      if (!normalizedMessage.includes('email') && !normalizedMessage.includes('password')) {
+        [fullNameInput, phoneInput, emailInput, passwordInput, confirmPasswordInput].forEach((input) => {
+          input.classList.remove('is-valid');
+          input.classList.add('is-invalid');
+        });
+      }
       
       // Re-enable submit button
       submitBtn.disabled = false;

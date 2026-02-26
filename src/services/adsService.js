@@ -1,4 +1,123 @@
-import { supabase } from './supabaseClient.js';
+import { supabase, supabasePublic } from './supabaseClient.js';
+
+const AD_IMAGES_BUCKET = 'advertisement-images';
+const SIGNED_URL_EXPIRY_SECONDS = 60 * 60 * 24 * 7;
+
+function applyPagination(query, filters = {}) {
+  const hasLimit = Number.isInteger(filters.limit) && filters.limit > 0;
+  const hasOffset = Number.isInteger(filters.offset) && filters.offset >= 0;
+
+  if (hasLimit && hasOffset) {
+    return query.range(filters.offset, filters.offset + filters.limit - 1);
+  }
+
+  if (hasLimit) {
+    return query.limit(filters.limit);
+  }
+
+  return query;
+}
+
+function extractAdImageObjectPath(filePath) {
+  if (!filePath) {
+    return null;
+  }
+
+  const PUBLIC_MARKER = `/storage/v1/object/public/${AD_IMAGES_BUCKET}/`;
+  const SIGNED_MARKER = `/storage/v1/object/sign/${AD_IMAGES_BUCKET}/`;
+
+  if (filePath.includes(PUBLIC_MARKER)) {
+    return decodeURIComponent(filePath.split(PUBLIC_MARKER)[1].split('?')[0]);
+  }
+
+  if (filePath.includes(SIGNED_MARKER)) {
+    return decodeURIComponent(filePath.split(SIGNED_MARKER)[1].split('?')[0]);
+  }
+
+  if (filePath.startsWith(`${AD_IMAGES_BUCKET}/`)) {
+    return filePath.slice(`${AD_IMAGES_BUCKET}/`.length);
+  }
+
+  if (!filePath.startsWith('http://') && !filePath.startsWith('https://')) {
+    return filePath;
+  }
+
+  return null;
+}
+
+async function resolveAdImageUrls(images = []) {
+  if (!images.length) {
+    return images;
+  }
+
+  const pathByOriginalUrl = new Map();
+  const paths = [];
+
+  images.forEach((image) => {
+    const objectPath = extractAdImageObjectPath(image.file_path);
+    if (!objectPath) {
+      return;
+    }
+
+    pathByOriginalUrl.set(image.file_path, objectPath);
+    paths.push(objectPath);
+  });
+
+  if (!paths.length) {
+    return images;
+  }
+
+  const uniquePaths = [...new Set(paths)];
+  const { data, error } = await supabase.storage
+    .from(AD_IMAGES_BUCKET)
+    .createSignedUrls(uniquePaths, SIGNED_URL_EXPIRY_SECONDS);
+
+  if (error || !data) {
+    return images;
+  }
+
+  const signedUrlByPath = new Map();
+  data.forEach((item) => {
+    if (item.path && item.signedUrl) {
+      signedUrlByPath.set(item.path, item.signedUrl);
+    }
+  });
+
+  return images.map((image) => {
+    const objectPath = pathByOriginalUrl.get(image.file_path);
+    if (!objectPath) {
+      return image;
+    }
+
+    return {
+      ...image,
+      file_path: signedUrlByPath.get(objectPath) || image.file_path
+    };
+  });
+}
+
+async function queryPublishedAds(client, filters = {}) {
+  let query = client
+    .from('advertisements')
+    .select('*')
+    .eq('status', 'Published')
+    .order('created_at', { ascending: false });
+
+  if (filters.owner_id) {
+    query = query.eq('owner_id', filters.owner_id);
+  }
+
+  if (filters.category_id) {
+    query = query.eq('category_id', filters.category_id);
+  }
+
+  if (filters.searchQuery) {
+    query = query.or(`title.ilike.%${filters.searchQuery}%,description.ilike.%${filters.searchQuery}%`);
+  }
+
+  query = applyPagination(query, filters);
+  return await query;
+}
 
 /**
  * Advertisements API Service
@@ -17,30 +136,19 @@ import { supabase } from './supabaseClient.js';
  * @returns {Promise<Array>}
  */
 export async function getPublishedAds(filters = {}) {
-  let query = supabase
-    .from('advertisements')
-    .select('*')
-    .eq('status', 'Published')
-    .order('created_at', { ascending: false });
+  const hasExplicitFilters = Boolean(filters.owner_id || filters.category_id || filters.searchQuery);
 
-  // Apply filters
-  if (filters.owner_id) {
-    query = query.eq('owner_id', filters.owner_id);
+  let activeClient = supabasePublic;
+  let { data, error } = await queryPublishedAds(activeClient, filters);
+
+  if (!error && !hasExplicitFilters && (data || []).length === 0) {
+    const fallbackResult = await queryPublishedAds(supabase, filters);
+    if (!fallbackResult.error && (fallbackResult.data || []).length > 0) {
+      activeClient = supabase;
+      data = fallbackResult.data;
+      error = null;
+    }
   }
-
-  if (filters.category_id) {
-    query = query.eq('category_id', filters.category_id);
-  }
-
-  if (filters.searchQuery) {
-    query = query.or(`title.ilike.%${filters.searchQuery}%,description.ilike.%${filters.searchQuery}%`);
-  }
-
-  if (filters.limit) {
-    query = query.limit(filters.limit);
-  }
-
-  const { data, error } = await query;
 
   if (error) {
     console.error('Get published ads error:', error);
@@ -56,27 +164,29 @@ export async function getPublishedAds(filters = {}) {
   const categoryIds = [...new Set(ads.map((ad) => ad.category_id).filter(Boolean))];
   const adUuids = ads.map((ad) => ad.uuid).filter(Boolean);
 
-  const [{ data: usersData }, { data: categoriesData }, { data: imagesData }] = await Promise.all([
+  const [{ data: usersData }, { data: categoriesData }, { data: rawImagesData }] = await Promise.all([
     ownerIds.length
-      ? supabase
+      ? activeClient
           .from('users')
           .select('id, full_name, phone')
           .in('id', ownerIds)
       : Promise.resolve({ data: [] }),
     categoryIds.length
-      ? supabase
+      ? activeClient
           .from('categories')
           .select('id, name, slug')
           .in('id', categoryIds)
       : Promise.resolve({ data: [] }),
     adUuids.length
-      ? supabase
+      ? activeClient
           .from('advertisement_images')
           .select('uuid, file_path, position, advertisement_uuid')
           .in('advertisement_uuid', adUuids)
           .order('position', { ascending: true })
       : Promise.resolve({ data: [] })
   ]);
+
+  const imagesData = await resolveAdImageUrls(rawImagesData || []);
 
   const usersById = new Map((usersData || []).map((user) => [user.id, user]));
   const categoriesById = new Map((categoriesData || []).map((category) => [category.id, category]));
@@ -138,9 +248,11 @@ export async function getAdvertisementById(uuid) {
     .eq('advertisement_uuid', uuid)
     .order('position', { ascending: true });
 
+  const resolvedImages = await resolveAdImageUrls(images || []);
+
   return {
     ...data,
-    advertisement_images: images || []
+    advertisement_images: resolvedImages
   };
 }
 
@@ -173,6 +285,8 @@ export async function getUserAds(filters = {}) {
     query = query.eq('status', filters.status);
   }
 
+  query = applyPagination(query, filters);
+
   const { data, error } = await query;
 
   if (error) {
@@ -188,10 +302,12 @@ export async function getUserAds(filters = {}) {
         .select('uuid, file_path, position')
         .eq('advertisement_uuid', ad.uuid)
         .order('position', { ascending: true });
+
+      const resolvedImages = await resolveAdImageUrls(images || []);
       
       return {
         ...ad,
-        advertisement_images: images || []
+        advertisement_images: resolvedImages
       };
     })
   );
@@ -211,13 +327,18 @@ export async function createAdvertisement(adData) {
     throw new Error('User is not logged in');
   }
 
+  const normalizedPrice = typeof adData.price === 'number' && !Number.isNaN(adData.price)
+    ? adData.price
+    : 0;
+
   const { data, error } = await supabase
     .from('advertisements')
     .insert([{
       title: adData.title,
       description: adData.description,
       category_id: adData.category_id,
-      price: adData.price,
+      item_condition: adData.item_condition === 'new' ? 'new' : 'used',
+      price: normalizedPrice,
       location: adData.location,
       owner_phone: adData.phone,
       owner_id: user.id,
@@ -246,7 +367,14 @@ export async function updateAdvertisement(uuid, updates) {
   if (updates.title !== undefined) updateData.title = updates.title;
   if (updates.description !== undefined) updateData.description = updates.description;
   if (updates.category_id !== undefined) updateData.category_id = updates.category_id;
-  if (updates.price !== undefined) updateData.price = updates.price;
+  if (updates.item_condition !== undefined) {
+    updateData.item_condition = updates.item_condition === 'new' ? 'new' : 'used';
+  }
+  if (updates.price !== undefined) {
+    updateData.price = typeof updates.price === 'number' && !Number.isNaN(updates.price)
+      ? updates.price
+      : 0;
+  }
   if (updates.location !== undefined) updateData.location = updates.location;
   if (updates.phone !== undefined) updateData.owner_phone = updates.phone;
   if (updates.status !== undefined) updateData.status = updates.status;
@@ -304,8 +432,8 @@ export async function archiveAdvertisement(uuid) {
  * Get pending advertisements (admin only)
  * @returns {Promise<Array>}
  */
-export async function getPendingAds() {
-  const { data, error } = await supabase
+export async function getPendingAds(filters = {}) {
+  let query = supabase
     .from('advertisements')
     .select(`
       *,
@@ -323,6 +451,10 @@ export async function getPendingAds() {
     .eq('status', 'Pending')
     .order('created_at', { ascending: false });
 
+  query = applyPagination(query, filters);
+
+  const { data, error } = await query;
+
   if (error) {
     console.error('Get pending ads error:', error);
     throw new Error('Error loading advertisements: ' + error.message);
@@ -336,10 +468,12 @@ export async function getPendingAds() {
         .select('uuid, file_path, position')
         .eq('advertisement_uuid', ad.uuid)
         .order('position', { ascending: true });
+
+      const resolvedImages = await resolveAdImageUrls(images || []);
       
       return {
         ...ad,
-        advertisement_images: images || []
+        advertisement_images: resolvedImages
       };
     })
   );
@@ -374,6 +508,8 @@ export async function getAllAds(filters = {}) {
     query = query.eq('status', filters.status);
   }
 
+  query = applyPagination(query, filters);
+
   const { data, error } = await query;
 
   if (error) {
@@ -389,10 +525,12 @@ export async function getAllAds(filters = {}) {
         .select('uuid, file_path, position')
         .eq('advertisement_uuid', ad.uuid)
         .order('position', { ascending: true });
+
+      const resolvedImages = await resolveAdImageUrls(images || []);
       
       return {
         ...ad,
-        advertisement_images: images || []
+        advertisement_images: resolvedImages
       };
     })
   );
@@ -465,6 +603,20 @@ export async function getCategories() {
   }
 
   return data || [];
+}
+
+export async function getPendingAdsCount() {
+  const { count, error } = await supabase
+    .from('advertisements')
+    .select('uuid', { count: 'exact', head: true })
+    .eq('status', 'Pending');
+
+  if (error) {
+    console.error('Get pending ads count error:', error);
+    throw new Error('Error loading pending ads count: ' + error.message);
+  }
+
+  return count || 0;
 }
 
 /**

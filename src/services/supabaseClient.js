@@ -20,6 +20,15 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 });
 
+export const supabasePublic = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+    detectSessionInUrl: false,
+    storageKey: 'obyava-public-client'
+  }
+});
+
 // Helper to check if Supabase is configured
 export function isSupabaseConfigured() {
   return !!(SUPABASE_URL && SUPABASE_ANON_KEY);

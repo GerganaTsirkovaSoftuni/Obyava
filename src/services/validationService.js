@@ -28,8 +28,8 @@ export function isValidEmail(email) {
  * @returns {boolean} - True if valid phone format
  */
 export function isValidPhone(phone) {
-  const phoneRegex = /^[\d\s\+\-\(\)]+$/;
-  return phone && phone.trim().length >= 6 && phoneRegex.test(phone);
+  const phoneRegex = /^\+359\s?\d{3}\s?\d{3}\s?\d{3}$/;
+  return phoneRegex.test((phone || '').trim());
 }
 
 /**
@@ -141,7 +141,7 @@ export function validatePhoneField(input) {
   }
   
   if (!isValidPhone(value)) {
-    showError(input, 'Please enter a valid phone number');
+    showError(input, 'Please enter a valid phone number in format +359 888 123 456');
     return false;
   }
   

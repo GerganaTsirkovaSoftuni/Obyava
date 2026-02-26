@@ -1,8 +1,11 @@
 import './dashboardPage.css';
 import template from './dashboardPage.html?raw';
-import { getPendingAds, getAllAds, approveAdvertisement, rejectAdvertisement, archiveAdvertisement, deleteAdvertisement } from '../../services/adsService.js';
+import { getPendingAds, getPendingAdsCount, getAllAds, approveAdvertisement, rejectAdvertisement, archiveAdvertisement, deleteAdvertisement } from '../../services/adsService.js';
 import { getAllUsers, updateUserRole, deleteUser, getPlatformStats } from '../../services/userService.js';
 import { confirm, alert } from '../../services/modalService.js';
+import { escapeHtml } from '../../services/sanitizeService.js';
+
+const PAGE_SIZE = 8;
 
 const statusTranslations = {
   'Draft': 'Draft',
@@ -14,16 +17,20 @@ const statusTranslations = {
 function createAdminAdRow(ad, onAction) {
   const row = document.createElement('div');
   row.className = 'admin-ad-row';
+
+  const safeTitle = escapeHtml(ad.title);
+  const safeImageUrl = escapeHtml(ad.image_url || '/placeholder.png');
+  const safeUserName = escapeHtml(ad.user_name);
   
   row.innerHTML = `
     <div class="row align-items-center">
       <div class="col-auto">
-        <img src="${ad.image_url || '/placeholder.png'}" class="admin-ad-image" alt="${ad.title}">
+        <img src="${safeImageUrl}" class="admin-ad-image" alt="${safeTitle}">
       </div>
       <div class="col">
-        <h6 class="admin-ad-title mb-1">${ad.title}</h6>
+        <h6 class="admin-ad-title mb-1">${safeTitle}</h6>
         <div class="admin-ad-details">
-          <span class="me-3"><i class="bi bi-person me-1"></i>${ad.user_name}</span>
+          <span class="me-3"><i class="bi bi-person me-1"></i>${safeUserName}</span>
           <span class="me-3"><i class="bi bi-tag me-1"></i>${ad.price ? ad.price + ' EUR' : 'Negotiable'}</span>
           <span class="me-3"><i class="bi bi-calendar me-1"></i>${new Date(ad.created_at).toLocaleDateString('en-US')}</span>
         </div>
@@ -90,15 +97,18 @@ function createUserRow(user, onAction) {
   row.className = 'user-row';
   
   const initials = user.full_name.split(' ').map(n => n[0]).join('').toUpperCase();
+  const safeFullName = escapeHtml(user.full_name);
+  const safeEmail = escapeHtml(user.email);
+  const safeInitials = escapeHtml(initials);
   
   row.innerHTML = `
     <div class="row align-items-center">
       <div class="col-auto">
-        <div class="user-avatar">${initials}</div>
+        <div class="user-avatar">${safeInitials}</div>
       </div>
       <div class="col">
-        <h6 class="mb-1">${user.full_name}</h6>
-        <p class="text-muted mb-0 small">${user.email}</p>
+        <h6 class="mb-1">${safeFullName}</h6>
+        <p class="text-muted mb-0 small">${safeEmail}</p>
       </div>
       <div class="col-auto">
         <span class="role-badge role-${user.role}">${user.role === 'admin' ? 'Admin' : 'User'}</span>
@@ -129,8 +139,8 @@ function createUserRow(user, onAction) {
   return row;
 }
 
-async function loadPendingAds() {
-  const ads = await getPendingAds();
+async function loadPendingAds(offset = 0, limit = PAGE_SIZE + 1) {
+  const ads = await getPendingAds({ offset, limit });
   return ads.map(ad => ({
     uuid: ad.uuid,
     title: ad.title,
@@ -142,8 +152,8 @@ async function loadPendingAds() {
   }));
 }
 
-async function loadAllAds(statusFilter = '') {
-  const filters = statusFilter ? { status: statusFilter } : {};
+async function loadAllAds(statusFilter = '', offset = 0, limit = PAGE_SIZE + 1) {
+  const filters = statusFilter ? { status: statusFilter, offset, limit } : { offset, limit };
   const ads = await getAllAds(filters);
   
   return ads.map(ad => ({
@@ -182,14 +192,28 @@ export function renderDashboardPage({ navigate }) {
   const pendingAdsList = section.querySelector('#pendingAdsList');
   const loadingPending = section.querySelector('#loadingPending');
   const emptyPending = section.querySelector('#emptyPending');
+  const pendingPaginationWrap = section.querySelector('#pendingPaginationWrap');
+  const pendingLoadMoreBtn = section.querySelector('#pendingLoadMoreBtn');
   
   const allAdsList = section.querySelector('#allAdsList');
   const loadingAllAds = section.querySelector('#loadingAllAds');
+  const emptyAllAds = section.querySelector('#emptyAllAds');
+  const allAdsPaginationWrap = section.querySelector('#allAdsPaginationWrap');
+  const allAdsLoadMoreBtn = section.querySelector('#allAdsLoadMoreBtn');
   
   const usersList = section.querySelector('#usersList');
   const loadingUsers = section.querySelector('#loadingUsers');
   
   const statusFilterAll = section.querySelector('#statusFilterAll');
+
+  let pendingOffset = 0;
+  let pendingHasMore = false;
+  let isLoadingPendingMore = false;
+
+  let allAdsOffset = 0;
+  let allAdsHasMore = false;
+  let activeAllAdsStatusFilter = '';
+  let isLoadingAllAdsMore = false;
 
   // Ad action handler
   async function handleAdAction(action, adId) {
@@ -202,8 +226,8 @@ export function renderDashboardPage({ navigate }) {
           if (approveConfirmed) {
             await approveAdvertisement(adId);
             await alert('Advertisement approved', 'Success', 'success');
-            loadPendingAdsData();
-            loadAllAdsData();
+            loadPendingAdsData(true);
+            loadAllAdsData(true);
           }
           break;
         case 'reject':
@@ -211,8 +235,8 @@ export function renderDashboardPage({ navigate }) {
           if (reason) {
             await rejectAdvertisement(adId, reason);
             await alert('Advertisement rejected', 'Success', 'success');
-            loadPendingAdsData();
-            loadAllAdsData();
+            loadPendingAdsData(true);
+            loadAllAdsData(true);
           }
           break;
         case 'archive':
@@ -220,7 +244,7 @@ export function renderDashboardPage({ navigate }) {
           if (archiveConfirmed) {
             await archiveAdvertisement(adId);
             await alert('Advertisement archived', 'Success', 'success');
-            loadAllAdsData();
+            loadAllAdsData(true);
           }
           break;
         case 'delete':
@@ -228,8 +252,8 @@ export function renderDashboardPage({ navigate }) {
           if (deleteConfirmed) {
             await deleteAdvertisement(adId);
             await alert('Advertisement deleted', 'Success', 'success');
-            loadPendingAdsData();
-            loadAllAdsData();
+            loadPendingAdsData(true);
+            loadAllAdsData(true);
           }
           break;
       }
@@ -263,7 +287,7 @@ export function renderDashboardPage({ navigate }) {
             await deleteUser(userId);
             await alert('User deleted', 'Success', 'success');
             loadUsersData();
-            loadAllAdsData(); // Refresh ads as some might have been deleted
+            loadAllAdsData(true); // Refresh ads as some might have been deleted
           }
           break;
       }
@@ -274,55 +298,95 @@ export function renderDashboardPage({ navigate }) {
   }
 
   // Load pending ads
-  async function loadPendingAdsData() {
-    loadingPending.classList.remove('d-none');
-    emptyPending.classList.add('d-none');
-    
-    const existingRows = pendingAdsList.querySelectorAll('.admin-ad-row');
-    existingRows.forEach(row => row.remove());
+  async function loadPendingAdsData(reset = true) {
+    if (reset) {
+      pendingOffset = 0;
+      pendingHasMore = false;
+      loadingPending.classList.remove('d-none');
+      emptyPending.classList.add('d-none');
+      pendingPaginationWrap.classList.add('d-none');
+      
+      const existingRows = pendingAdsList.querySelectorAll('.admin-ad-row');
+      existingRows.forEach(row => row.remove());
+    }
     
     try {
-      const ads = await loadPendingAds();
-      
-      loadingPending.classList.add('d-none');
-      
-      if (ads.length === 0) {
+      const [adsChunk, pendingTotal] = await Promise.all([
+        loadPendingAds(pendingOffset, PAGE_SIZE + 1),
+        getPendingAdsCount()
+      ]);
+
+      const ads = adsChunk.slice(0, PAGE_SIZE);
+      pendingHasMore = adsChunk.length > PAGE_SIZE;
+      pendingOffset += ads.length;
+
+      if (reset) {
+        loadingPending.classList.add('d-none');
+      }
+
+      if (reset && ads.length === 0) {
         emptyPending.classList.remove('d-none');
       } else {
+        emptyPending.classList.add('d-none');
         ads.forEach(ad => {
           const row = createAdminAdRow(ad, handleAdAction);
           pendingAdsList.appendChild(row);
         });
       }
       
-      pendingCount.textContent = ads.length;
-      pendingBadge.textContent = ads.length;
+      pendingCount.textContent = pendingTotal;
+      pendingBadge.textContent = pendingTotal;
+
+      if (pendingHasMore) {
+        pendingPaginationWrap.classList.remove('d-none');
+      } else {
+        pendingPaginationWrap.classList.add('d-none');
+      }
       
     } catch (error) {
       console.error('Error loading pending ads:', error);
       loadingPending.classList.add('d-none');
+      pendingPaginationWrap.classList.add('d-none');
     }
   }
 
   // Load all ads
-  async function loadAllAdsData(statusFilter = '') {
-    loadingAllAds.classList.remove('d-none');
-    
-    const existingRows = allAdsList.querySelectorAll('.admin-ad-row');
-    existingRows.forEach(row => row.remove());
+  async function loadAllAdsData(reset = true) {
+    if (reset) {
+      allAdsOffset = 0;
+      allAdsHasMore = false;
+      loadingAllAds.classList.remove('d-none');
+      emptyAllAds.classList.add('d-none');
+      allAdsPaginationWrap.classList.add('d-none');
+
+      const existingRows = allAdsList.querySelectorAll('.admin-ad-row');
+      existingRows.forEach(row => row.remove());
+    }
     
     try {
-      const ads = await loadAllAds(statusFilter);
-      
-      loadingAllAds.classList.add('d-none');
-      
-      if (ads.length === 0) {
-        allAdsList.innerHTML = '<div class="text-center py-5 text-muted">No advertisements found</div>';
+      const adsChunk = await loadAllAds(activeAllAdsStatusFilter, allAdsOffset, PAGE_SIZE + 1);
+      const ads = adsChunk.slice(0, PAGE_SIZE);
+      allAdsHasMore = adsChunk.length > PAGE_SIZE;
+      allAdsOffset += ads.length;
+
+      if (reset) {
+        loadingAllAds.classList.add('d-none');
+      }
+
+      if (reset && ads.length === 0) {
+        emptyAllAds.classList.remove('d-none');
       } else {
+        emptyAllAds.classList.add('d-none');
         ads.forEach(ad => {
           const row = createAdminAdRow(ad, handleAdAction);
           allAdsList.appendChild(row);
         });
+      }
+
+      if (allAdsHasMore) {
+        allAdsPaginationWrap.classList.remove('d-none');
+      } else {
+        allAdsPaginationWrap.classList.add('d-none');
       }
       
       // Update stats using platform stats API
@@ -333,6 +397,7 @@ export function renderDashboardPage({ navigate }) {
     } catch (error) {
       console.error('Error loading all ads:', error);
       loadingAllAds.classList.add('d-none');
+      allAdsPaginationWrap.classList.add('d-none');
     }
   }
 
@@ -363,12 +428,49 @@ export function renderDashboardPage({ navigate }) {
 
   // Status filter change
   statusFilterAll.addEventListener('change', (e) => {
-    loadAllAdsData(e.target.value);
+    activeAllAdsStatusFilter = e.target.value;
+    loadAllAdsData(true);
+  });
+
+  pendingLoadMoreBtn.addEventListener('click', async () => {
+    if (isLoadingPendingMore || !pendingHasMore) {
+      return;
+    }
+
+    isLoadingPendingMore = true;
+    pendingLoadMoreBtn.disabled = true;
+    pendingLoadMoreBtn.textContent = 'Loading...';
+
+    try {
+      await loadPendingAdsData(false);
+    } finally {
+      isLoadingPendingMore = false;
+      pendingLoadMoreBtn.disabled = false;
+      pendingLoadMoreBtn.textContent = 'Load 8 More';
+    }
+  });
+
+  allAdsLoadMoreBtn.addEventListener('click', async () => {
+    if (isLoadingAllAdsMore || !allAdsHasMore) {
+      return;
+    }
+
+    isLoadingAllAdsMore = true;
+    allAdsLoadMoreBtn.disabled = true;
+    allAdsLoadMoreBtn.textContent = 'Loading...';
+
+    try {
+      await loadAllAdsData(false);
+    } finally {
+      isLoadingAllAdsMore = false;
+      allAdsLoadMoreBtn.disabled = false;
+      allAdsLoadMoreBtn.textContent = 'Load 8 More';
+    }
   });
 
   // Initial load
-  loadPendingAdsData();
-  loadAllAdsData();
+  loadPendingAdsData(true);
+  loadAllAdsData(true);
   loadUsersData();
 
   return section;

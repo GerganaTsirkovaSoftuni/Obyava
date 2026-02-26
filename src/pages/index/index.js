@@ -2,23 +2,29 @@ import './index.css';
 import template from './index.html?raw';
 import { getCategories, getPublishedAds } from '../../services/adsService.js';
 import { getSession } from '../../services/authService.js';
+import { escapeHtml } from '../../services/sanitizeService.js';
 
-const INITIAL_VISIBLE_ADS = 16;
-const LOAD_MORE_COUNT = 8;
+const PAGE_SIZE = 8;
 
 function createAdCard(ad) {
   const col = document.createElement('div');
   col.className = 'col-12 col-sm-6 col-md-4 col-lg-3';
 
+  const safeUuid = escapeHtml(ad.uuid);
+  const safeTitle = escapeHtml(ad.title);
+  const safeImageUrl = escapeHtml(ad.image_url || '/placeholder-image.png');
+  const safeCategory = escapeHtml(ad.category);
+  const safeLocation = escapeHtml(ad.location || 'Unknown location');
+
   col.innerHTML = `
-    <div class="card ad-card shadow-sm" data-ad-uuid="${ad.uuid}">
-      <img src="${ad.image_url || '/placeholder-image.png'}" class="ad-card-img" alt="${ad.title}">
+    <div class="card ad-card shadow-sm" data-ad-uuid="${safeUuid}">
+      <img src="${safeImageUrl}" class="ad-card-img" alt="${safeTitle}">
       <div class="card-body">
-        <h5 class="ad-card-title">${ad.title}</h5>
+        <h5 class="ad-card-title">${safeTitle}</h5>
         <p class="ad-card-price">${ad.price ? ad.price + ' EUR' : 'Negotiable'}</p>
-        <span class="ad-card-category">Category: ${ad.category}</span>
+        <span class="ad-card-category">Category: ${safeCategory}</span>
         <div class="ad-card-footer">
-          <i class="bi bi-geo-alt me-1"></i>${ad.location || 'Unknown location'}
+          <i class="bi bi-geo-alt me-1"></i>${safeLocation}
         </div>
       </div>
     </div>
@@ -39,12 +45,13 @@ function createAdCard(ad) {
   return col;
 }
 
-async function loadAdvertisements(searchQuery = '', categoryId = '') {
+async function loadAdvertisements(searchQuery = '', categoryId = '', offset = 0, limit = PAGE_SIZE + 1) {
   try {
     const ads = await getPublishedAds({
       searchQuery,
       category_id: categoryId,
-      limit: 200
+      limit,
+      offset
     });
 
     console.log('📢 Raw ads from API:', ads);
@@ -113,7 +120,11 @@ export function renderIndexPage({ navigate }) {
   console.log('✓ Found loadingState:', !!loadingState);
 
   let allAds = [];
-  let visibleAdsCount = INITIAL_VISIBLE_ADS;
+  let hasMoreAds = false;
+  let currentOffset = 0;
+  let currentSearchQuery = '';
+  let currentCategory = '';
+  let isLoadingMore = false;
 
   // Check if user is logged in
   getSession().then(({ session }) => {
@@ -126,7 +137,7 @@ export function renderIndexPage({ navigate }) {
   populateCategories(section);
 
   function renderAds() {
-    console.log('🎨 renderAds called - allAds count:', allAds.length, 'visibleCount:', visibleAdsCount);
+    console.log('🎨 renderAds called - allAds count:', allAds.length);
     console.log('🎯 adsGrid element:', adsGrid);
     console.log('🎯 adsGrid HTML before clear:', adsGrid.innerHTML.substring(0, 100));
     
@@ -139,10 +150,10 @@ export function renderIndexPage({ navigate }) {
       return;
     }
 
-    console.log('✅ Rendering', Math.min(visibleAdsCount, allAds.length), 'ads');
+    console.log('✅ Rendering', allAds.length, 'ads');
     emptyState.classList.add('d-none');
 
-    allAds.slice(0, visibleAdsCount).forEach((ad, index) => {
+    allAds.forEach((ad, index) => {
       console.log(`  Card ${index}:`, ad.title);
       const adCard = createAdCard(ad);
       console.log(`  Appending card ${index} to grid. Card element:`, adCard);
@@ -153,7 +164,7 @@ export function renderIndexPage({ navigate }) {
     console.log('📊 Final grid state - children count:', adsGrid.children.length);
     console.log('📊 Grid HTML after render:', adsGrid.innerHTML.substring(0, 200));
 
-    if (allAds.length > INITIAL_VISIBLE_ADS && visibleAdsCount < allAds.length) {
+    if (hasMoreAds && allAds.length > 0) {
       paginationWrap.classList.remove('d-none');
     } else {
       paginationWrap.classList.add('d-none');
@@ -162,13 +173,22 @@ export function renderIndexPage({ navigate }) {
 
   async function displayAds(searchQuery = '', category = '') {
     try {
+      currentSearchQuery = searchQuery;
+      currentCategory = category;
+      currentOffset = 0;
+      hasMoreAds = false;
+
       loadingState.classList.remove('d-none');
       emptyState.classList.add('d-none');
       adsGrid.innerHTML = '';
       paginationWrap.classList.add('d-none');
 
-      allAds = await loadAdvertisements(searchQuery, category);
-      visibleAdsCount = INITIAL_VISIBLE_ADS;
+      const adsChunk = await loadAdvertisements(searchQuery, category, currentOffset, PAGE_SIZE + 1);
+      const visibleChunk = adsChunk.slice(0, PAGE_SIZE);
+
+      hasMoreAds = adsChunk.length > PAGE_SIZE;
+      allAds = visibleChunk;
+      currentOffset += visibleChunk.length;
 
       loadingState.classList.add('d-none');
       renderAds();
@@ -181,9 +201,31 @@ export function renderIndexPage({ navigate }) {
     }
   }
 
-  loadMoreBtn.addEventListener('click', () => {
-    visibleAdsCount += LOAD_MORE_COUNT;
-    renderAds();
+  loadMoreBtn.addEventListener('click', async () => {
+    if (isLoadingMore || !hasMoreAds) {
+      return;
+    }
+
+    isLoadingMore = true;
+    loadMoreBtn.disabled = true;
+    loadMoreBtn.textContent = 'Loading...';
+
+    try {
+      const adsChunk = await loadAdvertisements(currentSearchQuery, currentCategory, currentOffset, PAGE_SIZE + 1);
+      const visibleChunk = adsChunk.slice(0, PAGE_SIZE);
+
+      hasMoreAds = adsChunk.length > PAGE_SIZE;
+      allAds = [...allAds, ...visibleChunk];
+      currentOffset += visibleChunk.length;
+
+      renderAds();
+    } catch (error) {
+      console.error('Error loading more advertisements:', error);
+    } finally {
+      isLoadingMore = false;
+      loadMoreBtn.disabled = false;
+      loadMoreBtn.textContent = 'Load 8 More';
+    }
   });
 
   searchForm.addEventListener('submit', (e) => {

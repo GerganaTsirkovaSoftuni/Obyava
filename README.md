@@ -308,7 +308,7 @@ npm --version
 ### Access Test Accounts
 
 **Admin Account:**
-- Email: `admin@gmail.com` | Password: `Test1234`
+- Email: `adminuser@gmail.com` | Password: `Test1234`
 
 **Regular User Account:**
 - Email: `user@gmail.com` | Password: `Test1234`

@@ -41,7 +41,11 @@
   border: none;
   border-radius: 10px;
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
   color: white;
+  text-decoration: none;
   font-weight: 600;
   padding: 0.65rem 1.5rem;
   letter-spacing: 0.3px;
@@ -66,6 +70,9 @@
 
 #homeButton:hover {
   background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
   box-shadow: 0 6px 20px rgba(240, 147, 251, 0.5);
   transform: translateY(-2px);
   color: white;
@@ -79,6 +86,19 @@
 
 #homeButton:active {
   transform: translateY(0);
+}
+
+#homeButton:focus,
+#homeButton:focus-visible {
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+  color: white;
+  text-decoration: none;
+}
+
+#homeButton i {
+  color: white;
 }
 
 /* Modern load more button for user ads page */

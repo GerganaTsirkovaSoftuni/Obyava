@@ -1,22 +1,27 @@
 import './userAdsPage.css';
 import template from './userAdsPage.html?raw';
 import { getPublishedAds } from '../../services/adsService.js';
+import { escapeHtml } from '../../services/sanitizeService.js';
 
-const INITIAL_VISIBLE_ADS = 16;
-const LOAD_MORE_COUNT = 8;
+const PAGE_SIZE = 8;
 
 function createAdCard(ad, navigate) {
   const col = document.createElement('div');
   col.className = 'col-12 col-sm-6 col-md-4 col-lg-3';
 
+  const safeUuid = escapeHtml(ad.uuid);
+  const safeTitle = escapeHtml(ad.title);
+  const safeImageUrl = escapeHtml(ad.image_url || '/placeholder-image.png');
+  const safeLocation = escapeHtml(ad.location || 'Unknown location');
+
   col.innerHTML = `
-    <div class="card user-ads-card shadow-sm" data-ad-uuid="${ad.uuid}">
-      <img src="${ad.image_url || '/placeholder-image.png'}" class="user-ads-image" alt="${ad.title}">
+    <div class="card user-ads-card shadow-sm" data-ad-uuid="${safeUuid}">
+      <img src="${safeImageUrl}" class="user-ads-image" alt="${safeTitle}">
       <div class="card-body">
-        <h5 class="card-title">${ad.title}</h5>
+        <h5 class="card-title">${safeTitle}</h5>
         <p class="user-ads-price mb-2">${ad.price ? ad.price + ' EUR' : 'Negotiable'}</p>
         <p class="mb-0 text-muted small">
-          <i class="bi bi-geo-alt me-1"></i>${ad.location || 'Unknown location'}
+          <i class="bi bi-geo-alt me-1"></i>${safeLocation}
         </p>
       </div>
     </div>
@@ -43,7 +48,10 @@ export function renderUserAdsPage({ navigate, params }) {
   const loadMoreBtn = section.querySelector('#sellerAdsLoadMoreBtn');
 
   let allAds = [];
-  let visibleAdsCount = INITIAL_VISIBLE_ADS;
+  let hasMoreAds = false;
+  let currentOffset = 0;
+  let isLoadingMore = false;
+  let sellerDisplayName = 'this user';
 
   function renderAds() {
     grid.innerHTML = '';
@@ -56,33 +64,50 @@ export function renderUserAdsPage({ navigate, params }) {
 
     empty.classList.add('d-none');
 
-    allAds.slice(0, visibleAdsCount).forEach((ad) => {
+    allAds.forEach((ad) => {
       grid.appendChild(createAdCard(ad, navigate));
     });
 
-    if (allAds.length > INITIAL_VISIBLE_ADS && visibleAdsCount < allAds.length) {
+    if (hasMoreAds && allAds.length > 0) {
       paginationWrap.classList.remove('d-none');
     } else {
       paginationWrap.classList.add('d-none');
     }
   }
 
-  async function loadSellerAds() {
+  async function loadSellerAds(reset = false) {
     try {
-      const ads = await getPublishedAds({ owner_id: userId, limit: 200 });
+      if (reset) {
+        allAds = [];
+        hasMoreAds = false;
+        currentOffset = 0;
+        loading.classList.remove('d-none');
+        empty.classList.add('d-none');
+        paginationWrap.classList.add('d-none');
+      }
+
+      const ads = await getPublishedAds({ owner_id: userId, limit: PAGE_SIZE + 1, offset: currentOffset });
 
       loading.classList.add('d-none');
 
       if (!ads || ads.length === 0) {
-        allAds = [];
+        if (reset) {
+          allAds = [];
+        }
+        hasMoreAds = false;
         renderAds();
         return;
       }
 
-      const sellerName = ads[0]?.users?.full_name || 'this user';
-      titleEl.textContent = `Published ads by ${sellerName}`;
+      if (ads[0]?.users?.full_name) {
+        sellerDisplayName = ads[0].users.full_name;
+      }
+      titleEl.textContent = `Published ads by ${sellerDisplayName}`;
 
-      allAds = ads.map((ad) => ({
+      const visibleChunk = ads.slice(0, PAGE_SIZE);
+      hasMoreAds = ads.length > PAGE_SIZE;
+
+      const mappedChunk = visibleChunk.map((ad) => ({
         uuid: ad.uuid,
         title: ad.title,
         price: ad.price,
@@ -90,7 +115,13 @@ export function renderUserAdsPage({ navigate, params }) {
         image_url: ad.advertisement_images?.[0]?.file_path || null
       }));
 
-      visibleAdsCount = INITIAL_VISIBLE_ADS;
+      if (reset) {
+        allAds = mappedChunk;
+      } else {
+        allAds = [...allAds, ...mappedChunk];
+      }
+
+      currentOffset += mappedChunk.length;
       renderAds();
     } catch (error) {
       console.error('Error loading seller ads:', error);
@@ -100,9 +131,22 @@ export function renderUserAdsPage({ navigate, params }) {
     }
   }
 
-  loadMoreBtn.addEventListener('click', () => {
-    visibleAdsCount += LOAD_MORE_COUNT;
-    renderAds();
+  loadMoreBtn.addEventListener('click', async () => {
+    if (isLoadingMore || !hasMoreAds) {
+      return;
+    }
+
+    isLoadingMore = true;
+    loadMoreBtn.disabled = true;
+    loadMoreBtn.textContent = 'Loading...';
+
+    try {
+      await loadSellerAds(false);
+    } finally {
+      isLoadingMore = false;
+      loadMoreBtn.disabled = false;
+      loadMoreBtn.textContent = 'Load 8 More';
+    }
   });
 
   section.querySelectorAll('[data-link]').forEach((link) => {
@@ -112,7 +156,7 @@ export function renderUserAdsPage({ navigate, params }) {
     });
   });
 
-  loadSellerAds();
+  loadSellerAds(true);
 
   return section;
 }

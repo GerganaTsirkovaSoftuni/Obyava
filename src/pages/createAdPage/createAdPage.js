@@ -21,6 +21,7 @@ async function loadAdvertisement(adUuid) {
     description: ad.description,
     price: ad.price,
     category_id: ad.category_id,
+    item_condition: ad.item_condition || 'used',
     location: ad.location,
     phone: ad.owner_phone || '',
     images: ad.advertisement_images || []
@@ -73,19 +74,60 @@ export function renderCreateAdPage({ navigate, params }) {
   }
 
   // Handle image preview
-  const selectedFiles = [];
+  const selectedUploads = [];
+  const selectedFileHashes = new Set();
+  const existingImageHashes = new Set();
+  let existingImageHashesReady = false;
+
+  async function hashBlob(blob) {
+    const buffer = await blob.arrayBuffer();
+    const digest = await crypto.subtle.digest('SHA-256', buffer);
+    return Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
+  }
+
+  async function buildExistingImageHashSet() {
+    existingImageHashes.clear();
+
+    await Promise.all(
+      existingImages.map(async (image) => {
+        if (!image.file_path) {
+          return;
+        }
+
+        try {
+          const response = await fetch(image.file_path, { cache: 'no-store' });
+          if (!response.ok) {
+            return;
+          }
+
+          const blob = await response.blob();
+          const imageHash = await hashBlob(blob);
+          existingImageHashes.add(imageHash);
+        } catch (error) {
+          console.warn('Failed to hash existing image:', image.file_path, error);
+        }
+      })
+    );
+
+    existingImageHashesReady = true;
+  }
   
   imageInput.addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
-    
-    // Limit to 5 images total (existing + already selected + new files)
-    if (existingImages.length + selectedFiles.length + files.length > 5) {
-      await alert('You can upload a maximum of 5 images', 'Upload Limit', 'warning');
-      imageInput.value = '';
-      return;
+
+    if (isEditMode && !existingImageHashesReady) {
+      await buildExistingImageHashSet();
     }
 
     for (const file of files) {
+      // Limit to 5 images total (existing + already selected + new files)
+      if (existingImages.length + selectedUploads.length >= 5) {
+        await alert('You can upload a maximum of 5 images', 'Upload Limit', 'warning');
+        break;
+      }
+
       // Validate file using storage service
       const validation = validateImageFile(file);
       if (!validation.valid) {
@@ -93,7 +135,20 @@ export function renderCreateAdPage({ navigate, params }) {
         continue;
       }
 
-      selectedFiles.push(file);
+      const fileHash = await hashBlob(file);
+
+      if (selectedFileHashes.has(fileHash)) {
+        await alert('This image is already selected', 'Duplicate Image', 'warning');
+        continue;
+      }
+
+      if (existingImageHashes.has(fileHash)) {
+        await alert('This image already exists for this advertisement', 'Duplicate Image', 'warning');
+        continue;
+      }
+
+      selectedUploads.push({ file, hash: fileHash });
+      selectedFileHashes.add(fileHash);
       
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -101,15 +156,19 @@ export function renderCreateAdPage({ navigate, params }) {
         previewItem.className = 'image-preview-item';
         previewItem.innerHTML = `
           <img src="${e.target.result}" alt="Preview">
-          <button type="button" class="image-preview-remove" data-index="${selectedFiles.length - 1}">
+          <button type="button" class="image-preview-remove" data-hash="${fileHash}">
             <i class="bi bi-x"></i>
           </button>
         `;
         imagePreview.appendChild(previewItem);
         
         previewItem.querySelector('.image-preview-remove').addEventListener('click', function() {
-          const index = parseInt(this.dataset.index);
-          selectedFiles.splice(index, 1);
+          const removeHash = this.dataset.hash;
+          const index = selectedUploads.findIndex((upload) => upload.hash === removeHash);
+          if (index !== -1) {
+            selectedUploads.splice(index, 1);
+            selectedFileHashes.delete(removeHash);
+          }
           previewItem.remove();
         });
       };
@@ -134,6 +193,7 @@ export function renderCreateAdPage({ navigate, params }) {
           form.elements.price.value = ad.price || '';
           form.elements.location.value = ad.location;
           form.elements.phone.value = ad.phone;
+          form.elements.itemCondition.value = ad.item_condition || 'used';
 
           // Load existing images
           existingImages = ad.images || [];
@@ -148,12 +208,18 @@ export function renderCreateAdPage({ navigate, params }) {
             `;
             imagePreview.appendChild(previewItem);
 
-            previewItem.querySelector('.image-preview-remove').addEventListener('click', function() {
+            previewItem.querySelector('.image-preview-remove').addEventListener('click', async function() {
               const imageUuid = this.dataset.uuid;
               existingImages = existingImages.filter(i => i.uuid !== imageUuid);
               previewItem.remove();
+              if (isEditMode) {
+                existingImageHashesReady = false;
+                await buildExistingImageHashSet();
+              }
             });
           });
+
+          await buildExistingImageHashSet();
         }
       } catch (error) {
         console.error('Error loading advertisement:', error);
@@ -177,12 +243,14 @@ export function renderCreateAdPage({ navigate, params }) {
   const titleInput = form.querySelector('#title');
   const descriptionInput = form.querySelector('#description');
   const categoryInput = form.querySelector('#category');
+  const itemConditionInput = form.querySelector('#itemCondition');
   const locationInput = form.querySelector('#location');
   const phoneInput = form.querySelector('#phone');
 
   addRealTimeValidation(titleInput, (input) => validateRequired(input, 'Title'));
   addRealTimeValidation(descriptionInput, (input) => validateRequired(input, 'Description'));
   addRealTimeValidation(categoryInput, (input) => validateRequired(input, 'Category'));
+  addRealTimeValidation(itemConditionInput, (input) => validateRequired(input, 'Condition'));
   addRealTimeValidation(locationInput, (input) => validateRequired(input, 'Location'));
   addRealTimeValidation(phoneInput, validatePhoneField);
 
@@ -201,10 +269,11 @@ export function renderCreateAdPage({ navigate, params }) {
     const isTitleValid = validateRequired(titleInput, 'Title');
     const isDescriptionValid = validateRequired(descriptionInput, 'Description');
     const isCategoryValid = validateRequired(categoryInput, 'Category');
+    const isConditionValid = validateRequired(itemConditionInput, 'Condition');
     const isLocationValid = validateRequired(locationInput, 'Location');
     const isPhoneValid = validatePhoneField(phoneInput);
 
-    if (!isTitleValid || !isDescriptionValid || !isCategoryValid || !isLocationValid || !isPhoneValid) {
+    if (!isTitleValid || !isDescriptionValid || !isCategoryValid || !isConditionValid || !isLocationValid || !isPhoneValid) {
       return;
     }
 
@@ -216,11 +285,14 @@ export function renderCreateAdPage({ navigate, params }) {
     });
 
     const formData = new FormData(form);
+    const rawPriceValue = formData.get('price').trim();
+    const normalizedPrice = rawPriceValue ? parseFloat(rawPriceValue) : 0;
     const adData = {
       title: formData.get('title').trim(),
       description: formData.get('description').trim(),
       category_id: parseInt(formData.get('category')),
-      price: formData.get('price').trim() ? parseFloat(formData.get('price').trim()) : null,
+      item_condition: formData.get('itemCondition').trim(),
+      price: Number.isNaN(normalizedPrice) ? 0 : normalizedPrice,
       location: formData.get('location').trim(),
       phone: formData.get('phone').trim(),
       status: action === 'draft' ? 'Draft' : 'Pending'
@@ -247,8 +319,8 @@ export function renderCreateAdPage({ navigate, params }) {
       }
       
       // Upload new images if any
-      if (selectedFiles.length > 0) {
-        await uploadAdImages(advertisementUuid, selectedFiles);
+      if (selectedUploads.length > 0) {
+        await uploadAdImages(advertisementUuid, selectedUploads.map((upload) => upload.file));
       }
       
       const successText = isEditMode 

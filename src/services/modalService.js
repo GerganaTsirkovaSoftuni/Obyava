@@ -56,7 +56,7 @@ function hideModal() {
  * @param {string} title - Dialog title (default: "Confirm")
  * @returns {Promise<boolean>} - Resolves to true if confirmed, false if cancelled
  */
-export function confirm(message, title = 'Confirm') {
+export function confirm(message, title = 'Confirm', options = {}) {
   return new Promise((resolve) => {
     initModal();
     
@@ -67,6 +67,11 @@ export function confirm(message, title = 'Confirm') {
 
     titleElement.textContent = title;
     bodyElement.textContent = message;
+    modalContainer.classList.remove('modal-warning-variant');
+
+    if (options.variant === 'warning') {
+      modalContainer.classList.add('modal-warning-variant');
+    }
     
     // Show cancel button
     cancelBtn.style.display = 'inline-flex';
@@ -132,6 +137,7 @@ export function alert(message, title = 'Notice', type = 'info') {
 
     titleElement.textContent = title;
     bodyElement.textContent = message;
+    modalContainer.classList.remove('modal-warning-variant');
     
     // Hide cancel button
     cancelBtn.style.display = 'none';
