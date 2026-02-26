@@ -24,6 +24,14 @@ function createAdCard(ad) {
     </div>
   `;
 
+  console.log('🎫 Created card:', {
+    title: ad.title,
+    className: col.className,
+    hasHTMLContent: col.innerHTML.length > 0,
+    element: col,
+    image_url: ad.image_url
+  });
+
   col.addEventListener('click', () => {
     window.location.href = `/advertisement/${ad.uuid}`;
   });
@@ -109,6 +117,9 @@ export function renderIndexPage({ navigate }) {
 
   function renderAds() {
     console.log('🎨 renderAds called - allAds count:', allAds.length, 'visibleCount:', visibleAdsCount);
+    console.log('🎯 adsGrid element:', adsGrid);
+    console.log('🎯 adsGrid HTML before clear:', adsGrid.innerHTML.substring(0, 100));
+    
     adsGrid.innerHTML = '';
 
     if (allAds.length === 0) {
@@ -124,8 +135,13 @@ export function renderIndexPage({ navigate }) {
     allAds.slice(0, visibleAdsCount).forEach((ad, index) => {
       console.log(`  Card ${index}:`, ad.title);
       const adCard = createAdCard(ad);
+      console.log(`  Appending card ${index} to grid. Card element:`, adCard);
       adsGrid.appendChild(adCard);
+      console.log(`  After append, grid has ${adsGrid.children.length} children`);
     });
+
+    console.log('📊 Final grid state - children count:', adsGrid.children.length);
+    console.log('📊 Grid HTML after render:', adsGrid.innerHTML.substring(0, 200));
 
     if (allAds.length > INITIAL_VISIBLE_ADS && visibleAdsCount < allAds.length) {
       paginationWrap.classList.remove('d-none');
