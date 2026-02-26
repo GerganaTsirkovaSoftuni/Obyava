@@ -6,7 +6,7 @@ import { escapeHtml } from '../../services/sanitizeService.js';
 
 const PAGE_SIZE = 8;
 
-function createAdCard(ad) {
+function createAdCard(ad, navigate) {
   const col = document.createElement('div');
   col.className = 'col-12 col-sm-6 col-md-4 col-lg-3';
 
@@ -39,7 +39,7 @@ function createAdCard(ad) {
   });
 
   col.addEventListener('click', () => {
-    window.location.href = `/advertisement/${ad.uuid}`;
+    navigate(`/advertisement/${ad.uuid}`);
   });
 
   return col;
@@ -155,7 +155,7 @@ export function renderIndexPage({ navigate }) {
 
     allAds.forEach((ad, index) => {
       console.log(`  Card ${index}:`, ad.title);
-      const adCard = createAdCard(ad);
+      const adCard = createAdCard(ad, navigate);
       console.log(`  Appending card ${index} to grid. Card element:`, adCard);
       adsGrid.appendChild(adCard);
       console.log(`  After append, grid has ${adsGrid.children.length} children`);

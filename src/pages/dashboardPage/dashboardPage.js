@@ -14,7 +14,7 @@ const statusTranslations = {
   'Archived': 'Archived'
 };
 
-function createAdminAdRow(ad, onAction) {
+function createAdminAdRow(ad, onAction, navigate) {
   const row = document.createElement('div');
   row.className = 'admin-ad-row';
 
@@ -66,7 +66,7 @@ function createAdminAdRow(ad, onAction) {
   
   // Add event listeners
   row.querySelector('.view-btn').addEventListener('click', () => {
-    window.location.href = `/advertisement/${ad.uuid}`;
+    navigate(`/advertisement/${ad.uuid}`);
   });
   
   const approveBtn = row.querySelector('.approve-btn');
@@ -329,7 +329,7 @@ export function renderDashboardPage({ navigate }) {
       } else {
         emptyPending.classList.add('d-none');
         ads.forEach(ad => {
-          const row = createAdminAdRow(ad, handleAdAction);
+          const row = createAdminAdRow(ad, handleAdAction, navigate);
           pendingAdsList.appendChild(row);
         });
       }
@@ -378,7 +378,7 @@ export function renderDashboardPage({ navigate }) {
       } else {
         emptyAllAds.classList.add('d-none');
         ads.forEach(ad => {
-          const row = createAdminAdRow(ad, handleAdAction);
+          const row = createAdminAdRow(ad, handleAdAction, navigate);
           allAdsList.appendChild(row);
         });
       }
