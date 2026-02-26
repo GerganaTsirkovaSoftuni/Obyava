@@ -94,6 +94,11 @@ export function renderIndexPage({ navigate }) {
   wrapper.innerHTML = template;
   const section = wrapper.firstElementChild;
 
+  console.log('🔍 Page render - section element:', section);
+  console.log('🔍 Section class:', section?.className);
+  console.log('🔍 Section HTML length:', section?.innerHTML?.length);
+  console.log('🔍 Section parent when returned:', section?.parentElement);
+
   const searchForm = section.querySelector('#searchForm');
   const adsGrid = section.querySelector('#adsGrid');
   const emptyState = section.querySelector('#emptyState');
@@ -101,6 +106,11 @@ export function renderIndexPage({ navigate }) {
   const createAdBtn = section.querySelector('#createAdBtn');
   const paginationWrap = section.querySelector('#paginationWrap');
   const loadMoreBtn = section.querySelector('#loadMoreBtn');
+
+  console.log('✓ Found searchForm:', !!searchForm);
+  console.log('✓ Found adsGrid:', !!adsGrid);
+  console.log('✓ Found emptyState:', !!emptyState);
+  console.log('✓ Found loadingState:', !!loadingState);
 
   let allAds = [];
   let visibleAdsCount = INITIAL_VISIBLE_ADS;
@@ -187,5 +197,12 @@ export function renderIndexPage({ navigate }) {
   // Load initial ads
   displayAds();
 
+  console.log('🎬 INDEX PAGE - FINAL STATE BEFORE RETURN:');
+  console.log('  Section element:', section);
+  console.log('  Section parent:', section?.parentElement);
+  console.log('  Section in DOM:', document.body.contains(section));
+  console.log('  adsGrid children count:', adsGrid?.children?.length);
+  console.log('  Full section HTML length:', section?.innerHTML?.length);
+  
   return section;
 }
