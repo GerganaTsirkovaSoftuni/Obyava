@@ -339,10 +339,6 @@ npm --version
 **Regular User Account:**
 - Email: `user@gmail.com` | Password: `Test1234`
 
-**Additional Test Users:**
-- Email: `johndoe@gmail.com` | Password: generated during setup
-- Email: `maria@gmail.com` | Password: generated during setup
-
 **Link to the project**
 https://melodious-trifle-b87c15.netlify.app
 ---
