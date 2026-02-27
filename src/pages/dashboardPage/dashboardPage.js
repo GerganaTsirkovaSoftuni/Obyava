@@ -43,23 +43,23 @@ function createAdminAdRow(ad, onAction, navigate) {
       </div>
       <div class="col-auto admin-ad-actions-col">
         <div class="admin-actions">
-          <button class="btn btn-sm btn-outline-primary view-btn admin-action-btn" data-id="${ad.id}" title="View" aria-label="View">
+          <button class="btn btn-sm btn-outline-primary view-btn admin-action-btn has-text" data-id="${ad.id}" title="View" aria-label="View">
             <i class="bi bi-eye"></i><span class="action-label"> View</span>
           </button>
           ${ad.status === 'Pending' ? `
-            <button class="btn btn-sm btn-success approve-btn admin-action-btn" data-uuid="${ad.uuid}" title="Approve" aria-label="Approve">
+            <button class="btn btn-sm btn-success approve-btn admin-action-btn has-text" data-uuid="${ad.uuid}" title="Approve" aria-label="Approve">
               <i class="bi bi-check-circle"></i><span class="action-label"> Approve</span>
             </button>
-            <button class="btn btn-sm btn-danger reject-btn admin-action-btn" data-uuid="${ad.uuid}" title="Reject" aria-label="Reject">
+            <button class="btn btn-sm btn-danger reject-btn admin-action-btn has-text" data-uuid="${ad.uuid}" title="Reject" aria-label="Reject">
               <i class="bi bi-x-circle"></i><span class="action-label"> Reject</span>
             </button>
           ` : ''}
           ${ad.status !== 'Archived' ? `
-            <button class="btn btn-sm btn-warning archive-btn admin-action-btn" data-uuid="${ad.uuid}" title="Archive" aria-label="Archive">
+            <button class="btn btn-sm btn-warning archive-btn admin-action-btn has-text" data-uuid="${ad.uuid}" title="Archive" aria-label="Archive">
               <i class="bi bi-archive"></i><span class="action-label"> Archive</span>
             </button>
           ` : ''}
-          <button class="btn btn-sm btn-danger delete-btn admin-action-btn" data-uuid="${ad.uuid}" title="Delete" aria-label="Delete">
+          <button class="btn btn-sm btn-danger delete-btn admin-action-btn has-text" data-uuid="${ad.uuid}" title="Delete" aria-label="Delete">
             <i class="bi bi-trash"></i><span class="action-label"> Delete</span>
           </button>
         </div>
@@ -124,17 +124,17 @@ function createUserRow(user, onAction, currentAdminId) {
       <div class="col-auto user-actions-col">
         <div class="d-flex gap-2 user-actions-wrap">
           ${showToggleRole ? `
-            <button class="btn btn-sm btn-outline-primary toggle-role-btn user-action-btn" data-id="${user.id}" title="${user.role === 'admin' ? 'Set as User' : 'Set as Admin'}" aria-label="${user.role === 'admin' ? 'Set as User' : 'Set as Admin'}">
+            <button class="btn btn-sm btn-outline-primary toggle-role-btn user-action-btn has-text" data-id="${user.id}" title="${user.role === 'admin' ? 'Set as User' : 'Set as Admin'}" aria-label="${user.role === 'admin' ? 'Set as User' : 'Set as Admin'}">
               <i class="bi bi-person-gear"></i><span class="action-label"> ${user.role === 'admin' ? 'Set as User' : 'Set as Admin'}</span>
             </button>
           ` : ''}
           ${showViewAds ? `
-            <button class="btn btn-sm btn-outline-primary view-user-ads-btn user-action-btn" data-id="${user.id}" title="View Ads" aria-label="View Ads">
+            <button class="btn btn-sm btn-outline-primary view-user-ads-btn user-action-btn has-text" data-id="${user.id}" title="View Ads" aria-label="View Ads">
               <i class="bi bi-grid"></i><span class="action-label"> View Ads</span>
             </button>
           ` : ''}
           ${showDelete ? `
-            <button class="btn btn-sm btn-danger delete-user-btn user-action-btn" data-id="${user.id}" title="Delete User" aria-label="Delete User">
+            <button class="btn btn-sm btn-danger delete-user-btn user-action-btn has-text" data-id="${user.id}" title="Delete User" aria-label="Delete User">
               <i class="bi bi-trash"></i><span class="action-label"> Delete</span>
             </button>
           ` : ''}
@@ -277,6 +277,7 @@ export async function renderDashboardPage({ navigate }) {
   
   const usersList = section.querySelector('#usersList');
   const loadingUsers = section.querySelector('#loadingUsers');
+  const emptyUsers = section.querySelector('#emptyUsers');
   
   const statusFilterAll = section.querySelector('#statusFilterAll');
   const searchPending = section.querySelector('#searchPending');
@@ -287,13 +288,16 @@ export async function renderDashboardPage({ navigate }) {
   let pendingOffset = 0;
   let pendingHasMore = false;
   let isLoadingPendingMore = false;
+  let pendingRequestId = 0;
 
   let allAdsOffset = 0;
   let allAdsHasMore = false;
   let activeAllAdsStatusFilter = '';
   let activePendingSearchTerm = '';
   let activeAllAdsSearchTerm = '';
+  let activeUsersSearchTerm = '';
   let isLoadingAllAdsMore = false;
+  let allAdsRequestId = 0;
 
   function updateAllAdsSectionTitle() {
     const statusLabel = activeAllAdsStatusFilter || 'All';
@@ -418,6 +422,8 @@ export async function renderDashboardPage({ navigate }) {
 
   // Load pending ads
   async function loadPendingAdsData(reset = true) {
+    const requestId = ++pendingRequestId;
+    
     if (reset) {
       pendingOffset = 0;
       pendingHasMore = false;
@@ -425,7 +431,8 @@ export async function renderDashboardPage({ navigate }) {
       emptyPending.classList.add('d-none');
       pendingPaginationWrap.classList.add('d-none');
       
-      const existingRows = pendingAdsList.querySelectorAll('.admin-ad-row');
+      // Clear all ad rows
+      const existingRows = Array.from(pendingAdsList.querySelectorAll('.admin-ad-row'));
       existingRows.forEach(row => row.remove());
     }
     
@@ -434,6 +441,11 @@ export async function renderDashboardPage({ navigate }) {
         loadPendingAds(activePendingSearchTerm, pendingOffset, PAGE_SIZE + 1),
         getPendingAdsCount()
       ]);
+
+      // Ignore stale results
+      if (requestId !== pendingRequestId) {
+        return;
+      }
 
       const ads = adsChunk.slice(0, PAGE_SIZE);
       pendingHasMore = adsChunk.length > PAGE_SIZE;
@@ -476,6 +488,8 @@ export async function renderDashboardPage({ navigate }) {
 
   // Load all ads
   async function loadAllAdsData(reset = true) {
+    const requestId = ++allAdsRequestId;
+    
     if (reset) {
       allAdsOffset = 0;
       allAdsHasMore = false;
@@ -483,12 +497,18 @@ export async function renderDashboardPage({ navigate }) {
       emptyAllAds.classList.add('d-none');
       allAdsPaginationWrap.classList.add('d-none');
 
-      const existingRows = allAdsList.querySelectorAll('.admin-ad-row');
+      // Clear all ad rows
+      const existingRows = Array.from(allAdsList.querySelectorAll('.admin-ad-row'));
       existingRows.forEach(row => row.remove());
     }
     
     try {
       const adsChunk = await loadAllAds(activeAllAdsStatusFilter, activeAllAdsSearchTerm, allAdsOffset, PAGE_SIZE + 1);
+      
+      // Ignore stale results
+      if (requestId !== allAdsRequestId) {
+        return;
+      }
       const ads = adsChunk.slice(0, PAGE_SIZE);
       allAdsHasMore = adsChunk.length > PAGE_SIZE;
       allAdsOffset += ads.length;
@@ -533,22 +553,39 @@ export async function renderDashboardPage({ navigate }) {
   // Load users
   async function loadUsersData() {
     loadingUsers.classList.remove('d-none');
+    emptyUsers.classList.add('d-none');
     
     const existingRows = usersList.querySelectorAll('.user-row');
     existingRows.forEach(row => row.remove());
     
     try {
       const users = await loadUsers();
+      const normalizedSearch = activeUsersSearchTerm.trim().toLowerCase();
+      const filteredUsers = normalizedSearch
+        ? users.filter(user => {
+            const searchSource = `${user.full_name} ${user.email}`.toLowerCase();
+            return searchSource.includes(normalizedSearch);
+          })
+        : users;
       
       loadingUsers.classList.add('d-none');
       
-      users.forEach(user => {
-        const row = createUserRow(user, handleUserAction, currentAdminId);
-        usersList.appendChild(row);
-      });
+      if (filteredUsers.length === 0) {
+        emptyUsers.classList.remove('d-none');
+      } else {
+        emptyUsers.classList.add('d-none');
+        filteredUsers.forEach(user => {
+          const row = createUserRow(user, handleUserAction, currentAdminId);
+          usersList.appendChild(row);
+        });
+      }
       
       usersCount.textContent = users.length;
-      setSearchInputEnabled(searchUsers, users.length > 0);
+      setSearchInputEnabled(searchUsers, true);
+      
+      if (users.length === 0) {
+        activeUsersSearchTerm = '';
+      }
       
     } catch (error) {
       console.error('Error loading users:', error);
@@ -564,13 +601,18 @@ export async function renderDashboardPage({ navigate }) {
   });
 
   searchPending.addEventListener('input', (e) => {
-    activePendingSearchTerm = e.target.value;
+    activePendingSearchTerm = e.target.value.trim();
     loadPendingAdsData(true);
   });
 
   searchAllAds.addEventListener('input', (e) => {
-    activeAllAdsSearchTerm = e.target.value;
+    activeAllAdsSearchTerm = e.target.value.trim();
     loadAllAdsData(true);
+  });
+
+  searchUsers.addEventListener('input', (e) => {
+    activeUsersSearchTerm = e.target.value;
+    loadUsersData();
   });
 
   updateAllAdsSectionTitle();

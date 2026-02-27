@@ -5,20 +5,20 @@
       <div class="col-12">
         <div class="card shadow-sm">
           <div class="card-body p-4">
-            <div class="row align-items-center">
-              <div class="col-auto">
+            <div class="row align-items-center profile-header-row">
+              <div class="col-auto profile-avatar-col">
                 <div class="profile-avatar">
                   <i class="bi bi-person-circle"></i>
                 </div>
               </div>
-              <div class="col">
+              <div class="col profile-info-col">
                 <h2 class="profile-name mb-2" id="userName">User Name</h2>
                 <p class="text-muted mb-2" id="userEmail">email@example.com</p>
                 <p class="text-muted mb-0" id="userPhone">+359 888 123 456</p>
               </div>
-              <div class="col-auto">
-                <button id="editProfileBtn" class="btn btn-outline-primary">
-                  <i class="bi bi-pencil me-2"></i>Edit Profile
+              <div class="col-auto profile-action-col">
+                <button id="editProfileBtn" class="btn btn-outline-primary profile-edit-btn has-text">
+                  <i class="bi bi-pencil mr-0 top-0"></i><span class="profile-edit-label">Edit Profile</span>
                 </button>
               </div>
             </div>
@@ -100,12 +100,12 @@
     <!-- Tab Navigation -->
     <ul class="nav nav-tabs mb-4" id="profileTabs" role="tablist">
       <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="my-ads-tab" data-bs-toggle="tab" data-bs-target="#my-ads" type="button" role="tab">
+        <button class="nav-link active has-text" id="my-ads-tab" data-bs-toggle="tab" data-bs-target="#my-ads" type="button" role="tab">
           <i class="bi bi-grid me-2"></i>My Ads
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab">
+        <button class="nav-link has-text" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab">
           <i class="bi bi-gear me-2"></i>Settings
         </button>
       </li>
@@ -137,7 +137,7 @@
             <label class="btn btn-outline-danger" for="filter-rejected">Rejected</label>
           </div>
           
-          <button id="createNewAdBtn" class="btn btn-success float-end">
+          <button id="createNewAdBtn" class="btn btn-success float-end has-text">
             <i class="bi bi-plus-circle me-2"></i>New Ad
           </button>
         </div>
@@ -189,10 +189,10 @@
                   </div>
                   
                   <div class="d-flex gap-2">
-                    <button type="submit" id="updateProfileSubmitBtn" class="btn btn-primary profile-save-btn" disabled>
+                    <button type="submit" id="updateProfileSubmitBtn" class="btn btn-primary profile-save-btn has-text" disabled>
                       <i class="bi bi-save me-2"></i>Save Changes
                     </button>
-                    <button type="button" id="cancelProfileChangesBtn" class="btn btn-outline-secondary" disabled>
+                    <button type="button" id="cancelProfileChangesBtn" class="btn btn-outline-secondary has-text" disabled>
                       <i class="bi bi-x-circle me-2"></i>Cancel Changes
                     </button>
                   </div>
@@ -219,7 +219,7 @@
                     <input type="password" class="form-control" id="confirmNewPassword" name="confirmNewPassword">
                   </div>
                   
-                  <button type="submit" id="changePasswordSubmitBtn" class="btn btn-primary" disabled>
+                  <button type="submit" id="changePasswordSubmitBtn" class="btn btn-primary has-text" disabled>
                     <i class="bi bi-key me-2"></i>Change Password
                   </button>
                 </form>
@@ -230,7 +230,7 @@
               <div class="card-body">
                 <h5 class="card-title text-danger mb-3">Danger Zone</h5>
                 <p class="text-muted">Deleting your profile is irreversible. All your advertisements will also be deleted.</p>
-                <button id="deleteAccountBtn" class="btn btn-danger">
+                <button id="deleteAccountBtn" class="btn btn-danger has-text">
                   <i class="bi bi-trash me-2"></i>Delete Profile
                 </button>
               </div>

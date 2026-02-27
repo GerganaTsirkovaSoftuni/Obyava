@@ -179,9 +179,9 @@ a:hover {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Align icons with text in buttons on desktop/tablet */
-.btn i,
-button i {
+/* Align icons only when the button has text */
+.btn.has-text i,
+button.has-text i {
   position: relative;
   top: 2px;
 }

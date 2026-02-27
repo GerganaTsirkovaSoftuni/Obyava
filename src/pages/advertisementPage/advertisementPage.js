@@ -125,9 +125,9 @@ export async function renderAdvertisementPage({ navigate, params }) {
       const isAdmin = session && currentUserId ? (await isUserAdmin(currentUserId)).isAdmin : false;
       const isOwner = currentUserId === ad.seller.id;
       
-      // Only fetch rejection reason if owner or admin (regular users can't access this data for other users' ads)
+      // Only fetch rejection reason if owner (RLS policies prevent admins from viewing other users' rejection reasons)
       let isRejectedAd = false;
-      if (isOwner || isAdmin) {
+      if (isOwner) {
         try {
           isRejectedAd = Boolean(await getRejectionReason(ad.uuid));
         } catch (err) {

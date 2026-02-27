@@ -97,26 +97,11 @@ async function resolveAdImageUrls(images = []) {
 }
 
 async function queryPublishedAds(client, filters = {}) {
-  // Get all rejected ad UUIDs to exclude them
-  const { data: rejectedAds } = await client
-    .from('rejected_advertisements')
-    .select('advertisement_uuid');
-  
-  const rejectedUuids = (rejectedAds || []).map(r => r.advertisement_uuid);
-  
   let query = client
     .from('advertisements')
     .select('*')
-    .eq('status', 'Published');
-
-  // Exclude any rejected ads to prevent them from showing on homepage
-  if (rejectedUuids.length > 0) {
-    for (const uuid of rejectedUuids) {
-      query = query.neq('uuid', uuid);
-    }
-  }
-
-  query = query.order('created_at', { ascending: false });
+    .eq('status', 'Published')
+    .order('created_at', { ascending: false });
 
   if (filters.owner_id) {
     query = query.eq('owner_id', filters.owner_id);
@@ -131,7 +116,22 @@ async function queryPublishedAds(client, filters = {}) {
   }
 
   query = applyPagination(query, filters);
-  return await query;
+  
+  const { data, error } = await query;
+  
+  if (error || !data) {
+    return { data, error };
+  }
+
+  // Filter out rejected ads in JavaScript
+  const { data: rejectedAds } = await client
+    .from('rejected_advertisements')
+    .select('advertisement_uuid');
+  
+  const rejectedUuids = new Set((rejectedAds || []).map(r => r.advertisement_uuid));
+  const filteredData = data.filter(ad => !rejectedUuids.has(ad.uuid));
+  
+  return { data: filteredData, error };
 }
 
 /**

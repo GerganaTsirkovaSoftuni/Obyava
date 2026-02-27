@@ -43,7 +43,7 @@ function clearTabState() {
 
 function createUserAdCard(ad, navigate) {
   const card = document.createElement('div');
-  card.className = 'card user-ad-card shadow-sm';
+  card.className = 'card user-ad-card shadow-sm w-100';
 
   const safeUuid = escapeHtml(ad.uuid);
   const safeTitle = escapeHtml(ad.title);
@@ -71,21 +71,21 @@ function createUserAdCard(ad, navigate) {
         </div>
         <div class="col-auto">
           <div class="user-ad-actions">
-            <button class="btn btn-sm btn-outline-primary view-btn profile-ad-action-btn" data-uuid="${safeUuid}" title="View" aria-label="View">
+            <button class="btn btn-sm btn-outline-primary view-btn profile-ad-action-btn has-text" data-uuid="${safeUuid}" title="View" aria-label="View">
               <i class="bi bi-eye"></i><span class="action-label"> View</span>
             </button>
             ${ad.status !== 'Archived' && ad.status !== 'Rejected' ? `
-              <button class="btn btn-sm btn-outline-primary edit-btn profile-ad-action-btn" data-uuid="${safeUuid}" title="Edit" aria-label="Edit">
+              <button class="btn btn-sm btn-outline-primary edit-btn profile-ad-action-btn has-text" data-uuid="${safeUuid}" title="Edit" aria-label="Edit">
                 <i class="bi bi-pencil"></i><span class="action-label"> Edit</span>
               </button>
             ` : ''}
             ${ad.status === 'Published' || ad.status === 'Pending' ? `
-              <button class="btn btn-sm btn-outline-warning archive-btn profile-ad-action-btn" data-uuid="${safeUuid}" title="Archive" aria-label="Archive">
+              <button class="btn btn-sm btn-outline-warning archive-btn profile-ad-action-btn has-text" data-uuid="${safeUuid}" title="Archive" aria-label="Archive">
                 <i class="bi bi-archive"></i><span class="action-label"> Archive</span>
               </button>
             ` : ''}
             ${ad.status !== 'Published' && ad.status !== 'Archived' && ad.status !== 'Rejected' ? `
-              <button class="btn btn-sm btn-outline-danger delete-btn profile-ad-action-btn" data-uuid="${safeUuid}" title="Delete" aria-label="Delete">
+              <button class="btn btn-sm btn-outline-danger delete-btn profile-ad-action-btn has-text" data-uuid="${safeUuid}" title="Delete" aria-label="Delete">
                 <i class="bi bi-trash"></i><span class="action-label"> Delete</span>
               </button>
             ` : ''}
@@ -275,6 +275,17 @@ export async function renderProfilePage({ navigate }) {
 
     const settingsTab = new window.bootstrap.Tab(settingsTabBtn);
     settingsTab.show();
+
+    if (settingsPane) {
+      const header = document.querySelector('.app-header');
+      const headerHeight = header ? header.offsetHeight : 0;
+      const top = settingsPane.getBoundingClientRect().top + window.scrollY;
+
+      window.scrollTo({
+        top: Math.max(0, top - headerHeight - 12),
+        behavior: 'smooth'
+      });
+    }
   });
 
   async function applyAdminProfileLayout() {
