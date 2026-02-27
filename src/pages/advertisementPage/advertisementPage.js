@@ -125,8 +125,10 @@ export function renderAdvertisementPage({ navigate, params }) {
       const isAdmin = session && currentUserId ? (await isUserAdmin(currentUserId)).isAdmin : false;
       const isOwner = currentUserId === ad.seller.id;
 
-      // Show contact buttons only if user is NOT the owner
-      if (!isOwner) {
+      const canShowSellerContactActions = !isOwner && !isAdmin;
+
+      // Show contact buttons only for non-owner regular users
+      if (canShowSellerContactActions) {
         const normalizedPhone = hasPhone
           ? ad.seller.phone.replace(/[^\+\d]/g, '')
           : '';
@@ -146,15 +148,20 @@ export function renderAdvertisementPage({ navigate, params }) {
         }
 
         sellerContactActions.classList.toggle('d-none', !(hasPhone || hasEmail));
-        
-        // Show "More from this seller" button for non-owners
+      } else {
+        // Hide contact buttons for owners and admins
+        sellerContactActions.classList.add('d-none');
+        callSellerBtn.classList.add('d-none');
+        emailSellerBtn.classList.add('d-none');
+      }
+
+      // Show "More from this seller" button for non-owners
+      if (!isOwner) {
         moreSellerAdsSection.classList.remove('d-none');
         moreSellerAdsBtn.addEventListener('click', () => {
           navigate(`/user/${ad.seller.id}/ads`);
         });
       } else {
-        // Hide contact buttons and "More from seller" if user is the owner
-        sellerContactActions.classList.add('d-none');
         moreSellerAdsSection.classList.add('d-none');
       }
 

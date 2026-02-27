@@ -30,6 +30,7 @@ const routeMap = [
   { path: '/register', view: renderRegisterPage, title: 'Register' },
   { path: '/dashboard', view: renderDashboardPage, title: 'Admin Dashboard' },
   { path: '/profile', view: renderProfilePage, title: 'Profile' },
+  { path: '/profile/', view: renderProfilePage, title: 'Profile' },
   { path: '/advertisement/:id', view: renderAdvertisementPage, title: 'Advertisement' },
   { path: '/user/:id/ads', view: renderUserAdsPage, title: 'User Ads' },
   { path: '/create-advertisement', view: renderCreateAdPage, title: 'Create Advertisement' },

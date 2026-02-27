@@ -698,9 +698,19 @@ export async function getUserAdStats() {
     .select('status')
     .eq('owner_id', user.id);
 
+  const { count: rejectedCount, error: rejectedCountError } = await supabase
+    .from('rejected_advertisements')
+    .select('advertisement_uuid', { count: 'exact', head: true })
+    .eq('owner_id', user.id);
+
   if (error) {
     console.error('Get user ad stats error:', error);
     throw new Error('Error loading statistics: ' + error.message);
+  }
+
+  if (rejectedCountError) {
+    console.error('Get rejected ads stats error:', rejectedCountError);
+    throw new Error('Error loading statistics: ' + rejectedCountError.message);
   }
 
   const ads = data || [];
@@ -710,6 +720,7 @@ export async function getUserAdStats() {
     published: ads.filter(ad => ad.status === 'Published').length,
     pending: ads.filter(ad => ad.status === 'Pending').length,
     drafts: ads.filter(ad => ad.status === 'Draft').length,
-    archived: ads.filter(ad => ad.status === 'Archived').length
+    archived: ads.filter(ad => ad.status === 'Archived').length,
+    rejected: rejectedCount || 0
   };
 }

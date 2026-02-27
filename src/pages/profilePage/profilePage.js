@@ -231,6 +231,8 @@ export function renderProfilePage({ navigate }) {
   const publishedAds = section.querySelector('#publishedAds');
   const pendingAds = section.querySelector('#pendingAds');
   const draftAds = section.querySelector('#draftAds');
+  const archivedAds = section.querySelector('#archivedAds');
+  const rejectedAds = section.querySelector('#rejectedAds');
   const userAdsList = section.querySelector('#userAdsList');
   const loadingAds = section.querySelector('#loadingAds');
   const emptyAds = section.querySelector('#emptyAds');
@@ -241,6 +243,7 @@ export function renderProfilePage({ navigate }) {
   const profileStatsRow = section.querySelector('#profileStatsRow');
   const profileTabs = section.querySelector('#profileTabs');
   const myAdsTabBtn = section.querySelector('#my-ads-tab');
+  const settingsTabBtn = section.querySelector('#settings-tab');
   const myAdsTabItem = myAdsTabBtn?.closest('.nav-item');
   const myAdsPane = section.querySelector('#my-ads');
   const editProfileBtn = section.querySelector('#editProfileBtn');
@@ -264,6 +267,15 @@ export function renderProfilePage({ navigate }) {
     navigate('/create-advertisement');
   });
 
+  editProfileBtn?.addEventListener('click', () => {
+    if (!settingsTabBtn) {
+      return;
+    }
+
+    const settingsTab = new window.bootstrap.Tab(settingsTabBtn);
+    settingsTab.show();
+  });
+
   async function applyAdminProfileLayout() {
     try {
       const { user } = await getCurrentUser();
@@ -285,7 +297,6 @@ export function renderProfilePage({ navigate }) {
       deleteAccountBtn?.classList.add('d-none');
       dangerZoneCard?.classList.add('d-none');
 
-      const settingsTabBtn = section.querySelector('#settings-tab');
       if (settingsTabBtn) {
         const bsTab = new window.bootstrap.Tab(settingsTabBtn);
         bsTab.show();
@@ -329,15 +340,6 @@ export function renderProfilePage({ navigate }) {
 
       emptyAds.classList.add('d-none');
       
-      // Update stats using dedicated API
-      if (reset) {
-        const stats = await getUserAdStats();
-        totalAds.textContent = stats.total;
-        publishedAds.textContent = stats.published;
-        pendingAds.textContent = stats.pending;
-        draftAds.textContent = stats.drafts;
-      }
-      
       ads.forEach(ad => {
         const adCard = createUserAdCard(ad, navigate);
         userAdsList.appendChild(adCard);
@@ -354,6 +356,20 @@ export function renderProfilePage({ navigate }) {
       loadingAds.classList.add('d-none');
       emptyAds.classList.remove('d-none');
       profileAdsPaginationWrap.classList.add('d-none');
+    }
+  }
+
+  async function refreshProfileAdCounters() {
+    try {
+      const stats = await getUserAdStats();
+      totalAds.textContent = stats.total;
+      publishedAds.textContent = stats.published;
+      pendingAds.textContent = stats.pending;
+      draftAds.textContent = stats.drafts;
+      archivedAds.textContent = stats.archived;
+      rejectedAds.textContent = stats.rejected;
+    } catch (error) {
+      console.error('Error refreshing profile ad counters:', error);
     }
   }
 
@@ -414,6 +430,7 @@ export function renderProfilePage({ navigate }) {
       clearTabState();
 
       // Initial load
+      await refreshProfileAdCounters();
       displayUserAds(activeStatusFilter, true);
     }
   })();
