@@ -1,6 +1,6 @@
 import registerPageHTML from './registerPage.html?raw';
 import './registerPage.css';
-import { signUp } from '../../services/authService.js';
+import { signUp, signOut } from '../../services/authService.js';
 import {
   validateRequired,
   validateEmailField,
@@ -84,6 +84,9 @@ export function renderRegisterPage({ navigate }) {
       // Clear form
       form.reset();
       clearFormErrors(form);
+      
+      // Sign out user so the header shows logged-out state on login page
+      await signOut();
       
       // Navigate to login after delay
       setTimeout(() => {
