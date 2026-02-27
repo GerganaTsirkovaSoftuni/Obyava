@@ -64,29 +64,29 @@ function createUserAdCard(ad, navigate) {
         <div class="col">
           <h5 class="user-ad-title">${safeTitle}</h5>
           <p class="user-ad-price mb-2">${ad.price ? ad.price + ' EUR' : 'Negotiable'}</p>
-          <div class="d-flex align-items-center gap-2">
-            <span class="status-badge status-${ad.status}">${statusTranslations[ad.status]}</span>
+          <div class="d-flex align-items-center gap-2 user-ad-status-wrap">
+            <span class="status-badge status-${String(ad.status || '').toLowerCase()}">${statusTranslations[ad.status]}</span>
             ${ad.status === 'Rejected' ? `<span class="rejection-indicator" title="Click to see reason"><i class="bi bi-exclamation-circle-fill"></i> Rejected</span>` : ''}
           </div>
         </div>
         <div class="col-auto">
           <div class="user-ad-actions">
-            <button class="btn btn-sm btn-outline-primary view-btn" data-uuid="${safeUuid}">
-              <i class="bi bi-eye"></i>
+            <button class="btn btn-sm btn-outline-primary view-btn profile-ad-action-btn" data-uuid="${safeUuid}" title="View" aria-label="View">
+              <i class="bi bi-eye"></i><span class="action-label"> View</span>
             </button>
             ${ad.status !== 'Archived' && ad.status !== 'Rejected' ? `
-              <button class="btn btn-sm btn-outline-primary edit-btn" data-uuid="${safeUuid}">
-                <i class="bi bi-pencil"></i>
+              <button class="btn btn-sm btn-outline-primary edit-btn profile-ad-action-btn" data-uuid="${safeUuid}" title="Edit" aria-label="Edit">
+                <i class="bi bi-pencil"></i><span class="action-label"> Edit</span>
               </button>
             ` : ''}
             ${ad.status === 'Published' || ad.status === 'Pending' ? `
-              <button class="btn btn-sm btn-outline-warning archive-btn" data-uuid="${safeUuid}" title="Archive">
-                <i class="bi bi-archive"></i>
+              <button class="btn btn-sm btn-outline-warning archive-btn profile-ad-action-btn" data-uuid="${safeUuid}" title="Archive" aria-label="Archive">
+                <i class="bi bi-archive"></i><span class="action-label"> Archive</span>
               </button>
             ` : ''}
             ${ad.status !== 'Published' && ad.status !== 'Archived' && ad.status !== 'Rejected' ? `
-              <button class="btn btn-sm btn-outline-danger delete-btn" data-uuid="${safeUuid}">
-                <i class="bi bi-trash"></i>
+              <button class="btn btn-sm btn-outline-danger delete-btn profile-ad-action-btn" data-uuid="${safeUuid}" title="Delete" aria-label="Delete">
+                <i class="bi bi-trash"></i><span class="action-label"> Delete</span>
               </button>
             ` : ''}
           </div>

@@ -33,6 +33,29 @@
   border-radius: 12px;
 }
 
+.search-section #searchForm {
+  align-items: center;
+}
+
+.search-section .input-group-text,
+.search-section .form-control,
+.search-section .form-select,
+.search-section #searchForm .btn {
+  min-height: 48px;
+}
+
+.search-section .input-group-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-section #searchForm .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 #categoryFilter {
   cursor: pointer;
 }

@@ -90,16 +90,32 @@
 .admin-ad-details {
   font-size: 0.9rem;
   color: #6c757d;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+}
+
+.admin-ad-details > span {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  margin-right: 0 !important;
 }
 
 .admin-actions {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.admin-action-btn .action-label {
+  white-space: nowrap;
 }
 
 .status-badge {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
+  padding: 0.35rem 0.8rem;
   border-radius: 20px;
   font-weight: 500;
   font-size: 0.85rem;
@@ -118,6 +134,10 @@
 .status-published {
   background: #d4edda;
   color: #155724;
+}
+
+.status-badge.status-published {
+  padding: 0.3rem 0.6rem;
 }
 
 .status-archived {
@@ -154,7 +174,7 @@
 
 .role-badge {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
+  padding: 0.35rem 0.8rem;
   border-radius: 20px;
   font-weight: 500;
   font-size: 0.85rem;
@@ -170,18 +190,255 @@
   color: #856404;
 }
 
+.user-actions-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.user-action-btn .action-label {
+  white-space: nowrap;
+}
+
+.admin-action-btn,
+.user-action-btn {
+  border-radius: 0.75rem;
+}
+
+.admin-action-btn i,
+.user-action-btn i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-size: 1rem;
+}
+
+.all-ads-toolbar-controls {
+  align-items: center;
+}
+
+#statusFilterAll {
+  width: 200px;
+}
+
+.all-ads-search-group {
+  width: 300px;
+}
+
+.pending-toolbar-controls {
+  width: 300px;
+}
+
+.users-toolbar-controls {
+  width: 300px;
+}
+
+@media (max-width: 992px) {
+  .admin-ad-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .admin-ad-details > span {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  #statusFilterAll,
+  .all-ads-search-group {
+    width: 260px;
+  }
+
+  .pending-toolbar-controls {
+    width: 260px;
+  }
+
+  .users-toolbar-controls {
+    width: 260px;
+  }
+
+  .admin-action-btn .action-label {
+    display: none;
+  }
+
+  .admin-action-btn {
+    width: 2.4rem !important;
+    height: 2.4rem !important;
+    padding: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .user-action-btn .action-label {
+    display: none;
+  }
+
+  .user-action-btn {
+    width: 2.4rem !important;
+    height: 2.4rem !important;
+    padding: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .user-actions-wrap {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: nowrap !important;
+  }
+}
+
 @media (max-width: 768px) {
   .page-title {
     font-size: 1.5rem;
   }
+
+  .admin-ad-row .row {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    grid-template-areas:
+      'image info'
+      'image status'
+      'image actions';
+    column-gap: 0.75rem;
+    row-gap: 0.4rem;
+    align-items: start;
+  }
+
+  .admin-ad-image-col {
+    grid-area: image;
+    align-self: start;
+  }
+
+  .admin-ad-info-col {
+    grid-area: info;
+    min-width: 0;
+  }
+
+  .admin-ad-status-col {
+    grid-area: status;
+  }
+
+  .admin-ad-actions-col {
+    grid-area: actions;
+  }
+
+  .admin-badge {
+    display: none;
+  }
+
+  .all-ads-toolbar {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .all-ads-toolbar-controls {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #statusFilterAll,
+  .all-ads-search-group {
+    width: 100%;
+  }
+
+  .pending-toolbar {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .pending-toolbar-controls {
+    width: 100%;
+  }
+
+  .users-toolbar {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .users-toolbar-controls {
+    width: 100%;
+  }
+
+  .user-actions-wrap {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.6rem;
+    flex-wrap: nowrap !important;
+    width: max-content;
+  }
+
+  .user-row .row {
+    display: grid;
+    grid-template-columns: 50px 1fr;
+    grid-template-areas:
+      'avatar info'
+      'avatar role'
+      'avatar actions';
+    column-gap: 0.75rem;
+    row-gap: 0.4rem;
+    align-items: start;
+  }
+
+  .user-avatar-col {
+    grid-area: avatar;
+    align-self: start;
+  }
+
+  .user-info-col {
+    grid-area: info;
+    min-width: 0;
+  }
+
+  .user-role-col {
+    grid-area: role;
+  }
+
+  .user-actions-col {
+    grid-area: actions;
+  }
   
   .admin-ad-image {
-    width: 60px;
-    height: 60px;
+    width: 80px;
+    height: 80px;
+    min-width: 80px;
+    min-height: 80px;
   }
   
   .admin-actions {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: nowrap !important;
+    width: max-content;
+    gap: 0.6rem;
+  }
+
+  .admin-action-btn,
+  .user-action-btn {
+    width: 2.7rem !important;
+    height: 2.7rem !important;
+    padding: 0 !important;
+    line-height: 1;
+  }
+
+  .admin-ad-details {
+    gap: 0.35rem 0.6rem;
   }
   
   .stat-value {

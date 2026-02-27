@@ -27,10 +27,10 @@ function createAdminAdRow(ad, onAction, navigate) {
   
   row.innerHTML = `
     <div class="row align-items-center">
-      <div class="col-auto">
+      <div class="col-auto admin-ad-image-col">
         <img src="${safeImageUrl}" class="admin-ad-image" alt="${safeTitle}">
       </div>
-      <div class="col">
+      <div class="col admin-ad-info-col">
         <h6 class="admin-ad-title mb-1">${safeTitle}</h6>
         <div class="admin-ad-details">
           <span class="me-3"><i class="bi bi-person me-1"></i>${safeUserName}</span>
@@ -38,29 +38,29 @@ function createAdminAdRow(ad, onAction, navigate) {
           <span class="me-3"><i class="bi bi-calendar me-1"></i>${new Date(ad.created_at).toLocaleDateString('en-US')}</span>
         </div>
       </div>
-      <div class="col-auto">
-        <span class="status-badge status-${ad.status}">${statusTranslations[ad.status]}</span>
+      <div class="col-auto admin-ad-status-col">
+        <span class="status-badge status-${String(ad.status || '').toLowerCase()}">${statusTranslations[ad.status]}</span>
       </div>
-      <div class="col-auto">
+      <div class="col-auto admin-ad-actions-col">
         <div class="admin-actions">
-          <button class="btn btn-sm btn-outline-primary view-btn" data-id="${ad.id}">
-            <i class="bi bi-eye"></i>
+          <button class="btn btn-sm btn-outline-primary view-btn admin-action-btn" data-id="${ad.id}" title="View" aria-label="View">
+            <i class="bi bi-eye"></i><span class="action-label"> View</span>
           </button>
           ${ad.status === 'Pending' ? `
-            <button class="btn btn-sm btn-success approve-btn" data-uuid="${ad.uuid}">
-              <i class="bi bi-check-circle"></i> Approve
+            <button class="btn btn-sm btn-success approve-btn admin-action-btn" data-uuid="${ad.uuid}" title="Approve" aria-label="Approve">
+              <i class="bi bi-check-circle"></i><span class="action-label"> Approve</span>
             </button>
-            <button class="btn btn-sm btn-danger reject-btn" data-uuid="${ad.uuid}">
-              <i class="bi bi-x-circle"></i> Reject
+            <button class="btn btn-sm btn-danger reject-btn admin-action-btn" data-uuid="${ad.uuid}" title="Reject" aria-label="Reject">
+              <i class="bi bi-x-circle"></i><span class="action-label"> Reject</span>
             </button>
           ` : ''}
           ${ad.status !== 'Archived' ? `
-            <button class="btn btn-sm btn-warning archive-btn" data-uuid="${ad.uuid}">
-              <i class="bi bi-archive"></i>
+            <button class="btn btn-sm btn-warning archive-btn admin-action-btn" data-uuid="${ad.uuid}" title="Archive" aria-label="Archive">
+              <i class="bi bi-archive"></i><span class="action-label"> Archive</span>
             </button>
           ` : ''}
-          <button class="btn btn-sm btn-danger delete-btn" data-uuid="${ad.uuid}">
-            <i class="bi bi-trash"></i>
+          <button class="btn btn-sm btn-danger delete-btn admin-action-btn" data-uuid="${ad.uuid}" title="Delete" aria-label="Delete">
+            <i class="bi bi-trash"></i><span class="action-label"> Delete</span>
           </button>
         </div>
       </div>
@@ -111,31 +111,31 @@ function createUserRow(user, onAction, currentAdminId) {
   
   row.innerHTML = `
     <div class="row align-items-center">
-      <div class="col-auto">
+      <div class="col-auto user-avatar-col">
         <div class="user-avatar">${safeInitials}</div>
       </div>
-      <div class="col">
+      <div class="col user-info-col">
         <h6 class="mb-1">${safeFullName}</h6>
         <p class="text-muted mb-0 small">${safeEmail}</p>
       </div>
-      <div class="col-auto">
+      <div class="col-auto user-role-col">
         <span class="role-badge role-${user.role}">${user.role === 'admin' ? 'Admin' : 'User'}</span>
       </div>
-      <div class="col-auto">
-        <div class="d-flex gap-2">
+      <div class="col-auto user-actions-col">
+        <div class="d-flex gap-2 user-actions-wrap">
           ${showToggleRole ? `
-            <button class="btn btn-sm btn-outline-primary toggle-role-btn" data-id="${user.id}">
-              <i class="bi bi-person-gear"></i> ${user.role === 'admin' ? 'Set as User' : 'Set as Admin'}
+            <button class="btn btn-sm btn-outline-primary toggle-role-btn user-action-btn" data-id="${user.id}" title="${user.role === 'admin' ? 'Set as User' : 'Set as Admin'}" aria-label="${user.role === 'admin' ? 'Set as User' : 'Set as Admin'}">
+              <i class="bi bi-person-gear"></i><span class="action-label"> ${user.role === 'admin' ? 'Set as User' : 'Set as Admin'}</span>
             </button>
           ` : ''}
           ${showViewAds ? `
-            <button class="btn btn-sm btn-outline-secondary view-user-ads-btn" data-id="${user.id}">
-              <i class="bi bi-grid"></i> View Ads
+            <button class="btn btn-sm btn-outline-primary view-user-ads-btn user-action-btn" data-id="${user.id}" title="View Ads" aria-label="View Ads">
+              <i class="bi bi-grid"></i><span class="action-label"> View Ads</span>
             </button>
           ` : ''}
           ${showDelete ? `
-            <button class="btn btn-sm btn-danger delete-user-btn" data-id="${user.id}">
-              <i class="bi bi-trash"></i>
+            <button class="btn btn-sm btn-danger delete-user-btn user-action-btn" data-id="${user.id}" title="Delete User" aria-label="Delete User">
+              <i class="bi bi-trash"></i><span class="action-label"> Delete</span>
             </button>
           ` : ''}
         </div>
@@ -161,9 +161,24 @@ function createUserRow(user, onAction, currentAdminId) {
   return row;
 }
 
-async function loadPendingAds(offset = 0, limit = PAGE_SIZE + 1) {
-  const ads = await getPendingAds({ offset, limit });
-  return ads.map(ad => ({
+async function loadPendingAds(searchTerm = '', offset = 0, limit = PAGE_SIZE + 1) {
+  const ads = await getPendingAds({ limit: 10000 });
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+
+  const filteredAds = ads.filter(ad => {
+    if (!normalizedSearch) {
+      return true;
+    }
+
+    const title = ad.title || '';
+    const userName = ad.users?.full_name || '';
+    const priceText = ad.price ? `${ad.price} eur` : 'negotiable';
+    const searchSource = `${title} ${userName} ${priceText}`.toLowerCase();
+
+    return searchSource.includes(normalizedSearch);
+  });
+
+  return filteredAds.map(ad => ({
     uuid: ad.uuid,
     title: ad.title,
     price: ad.price,
@@ -171,10 +186,10 @@ async function loadPendingAds(offset = 0, limit = PAGE_SIZE + 1) {
     created_at: ad.created_at,
     user_name: ad.users?.full_name || 'Unknown',
     image_url: ad.advertisement_images?.[0]?.file_path || null
-  }));
+  })).slice(offset, offset + limit);
 }
 
-async function loadAllAds(statusFilter = '', offset = 0, limit = PAGE_SIZE + 1) {
+async function loadAllAds(statusFilter = '', searchTerm = '', offset = 0, limit = PAGE_SIZE + 1) {
   // IMPORTANT: Always fetch ALL ads without status filter to enable global sorting by status priority
   // Only use statusFilter for display filtering after sorting
   const allAds = await getAllAds({ limit: 10000 }); // Fetch large batch for proper sorting
@@ -208,6 +223,15 @@ async function loadAllAds(statusFilter = '', offset = 0, limit = PAGE_SIZE + 1) 
   let filteredAds = formattedAds;
   if (statusFilter) {
     filteredAds = formattedAds.filter(ad => ad.status === statusFilter);
+  }
+
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  if (normalizedSearch) {
+    filteredAds = filteredAds.filter(ad => {
+      const priceText = ad.price ? `${ad.price} eur` : 'negotiable';
+      const searchSource = `${ad.title} ${ad.user_name} ${priceText}`.toLowerCase();
+      return searchSource.includes(normalizedSearch);
+    });
   }
 
   // Apply pagination to the sorted and filtered results
@@ -249,11 +273,15 @@ export async function renderDashboardPage({ navigate }) {
   const emptyAllAds = section.querySelector('#emptyAllAds');
   const allAdsPaginationWrap = section.querySelector('#allAdsPaginationWrap');
   const allAdsLoadMoreBtn = section.querySelector('#allAdsLoadMoreBtn');
+  const allAdsSectionTitle = section.querySelector('#allAdsSectionTitle');
   
   const usersList = section.querySelector('#usersList');
   const loadingUsers = section.querySelector('#loadingUsers');
   
   const statusFilterAll = section.querySelector('#statusFilterAll');
+  const searchPending = section.querySelector('#searchPending');
+  const searchAllAds = section.querySelector('#searchAllAds');
+  const searchUsers = section.querySelector('#searchUsers');
   let currentAdminId = null;
 
   let pendingOffset = 0;
@@ -263,7 +291,27 @@ export async function renderDashboardPage({ navigate }) {
   let allAdsOffset = 0;
   let allAdsHasMore = false;
   let activeAllAdsStatusFilter = '';
+  let activePendingSearchTerm = '';
+  let activeAllAdsSearchTerm = '';
   let isLoadingAllAdsMore = false;
+
+  function updateAllAdsSectionTitle() {
+    const statusLabel = activeAllAdsStatusFilter || 'All';
+    allAdsSectionTitle.textContent = `${statusLabel} Advertisements`;
+  }
+
+  function setSearchInputEnabled(input, isEnabled) {
+    if (!input) {
+      return;
+    }
+
+    input.disabled = !isEnabled;
+    input.placeholder = isEnabled ? 'Search...' : 'No data to search';
+
+    if (!isEnabled) {
+      input.value = '';
+    }
+  }
 
   // Ad action handler
   async function handleAdAction(action, adId) {
@@ -383,7 +431,7 @@ export async function renderDashboardPage({ navigate }) {
     
     try {
       const [adsChunk, pendingTotal] = await Promise.all([
-        loadPendingAds(pendingOffset, PAGE_SIZE + 1),
+        loadPendingAds(activePendingSearchTerm, pendingOffset, PAGE_SIZE + 1),
         getPendingAdsCount()
       ]);
 
@@ -407,6 +455,11 @@ export async function renderDashboardPage({ navigate }) {
       
       pendingCount.textContent = pendingTotal;
       pendingBadge.textContent = pendingTotal;
+      setSearchInputEnabled(searchPending, pendingTotal > 0);
+
+      if (pendingTotal === 0) {
+        activePendingSearchTerm = '';
+      }
 
       if (pendingHasMore) {
         pendingPaginationWrap.classList.remove('d-none');
@@ -435,7 +488,7 @@ export async function renderDashboardPage({ navigate }) {
     }
     
     try {
-      const adsChunk = await loadAllAds(activeAllAdsStatusFilter, allAdsOffset, PAGE_SIZE + 1);
+      const adsChunk = await loadAllAds(activeAllAdsStatusFilter, activeAllAdsSearchTerm, allAdsOffset, PAGE_SIZE + 1);
       const ads = adsChunk.slice(0, PAGE_SIZE);
       allAdsHasMore = adsChunk.length > PAGE_SIZE;
       allAdsOffset += ads.length;
@@ -464,6 +517,11 @@ export async function renderDashboardPage({ navigate }) {
       const stats = await getPlatformStats();
       publishedCount.textContent = stats.published_ads;
       totalAdsCount.textContent = stats.total_ads;
+      setSearchInputEnabled(searchAllAds, stats.total_ads > 0);
+
+      if (stats.total_ads === 0) {
+        activeAllAdsSearchTerm = '';
+      }
       
     } catch (error) {
       console.error('Error loading all ads:', error);
@@ -490,6 +548,7 @@ export async function renderDashboardPage({ navigate }) {
       });
       
       usersCount.textContent = users.length;
+      setSearchInputEnabled(searchUsers, users.length > 0);
       
     } catch (error) {
       console.error('Error loading users:', error);
@@ -500,8 +559,21 @@ export async function renderDashboardPage({ navigate }) {
   // Status filter change
   statusFilterAll.addEventListener('change', (e) => {
     activeAllAdsStatusFilter = e.target.value;
+    updateAllAdsSectionTitle();
     loadAllAdsData(true);
   });
+
+  searchPending.addEventListener('input', (e) => {
+    activePendingSearchTerm = e.target.value;
+    loadPendingAdsData(true);
+  });
+
+  searchAllAds.addEventListener('input', (e) => {
+    activeAllAdsSearchTerm = e.target.value;
+    loadAllAdsData(true);
+  });
+
+  updateAllAdsSectionTitle();
 
   pendingLoadMoreBtn.addEventListener('click', async () => {
     if (isLoadingPendingMore || !pendingHasMore) {

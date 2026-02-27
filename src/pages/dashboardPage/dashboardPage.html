@@ -108,9 +108,9 @@
       <div class="tab-pane fade show active" id="pending" role="tabpanel">
         <div class="card shadow-sm">
           <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 pending-toolbar">
               <h5 class="card-title mb-0">Advertisements for Review</h5>
-              <div class="input-group" style="width: 300px;">
+              <div class="input-group pending-toolbar-controls">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input type="text" class="form-control" id="searchPending" placeholder="Search...">
               </div>
@@ -142,17 +142,18 @@
       <div class="tab-pane fade" id="all-ads" role="tabpanel">
         <div class="card shadow-sm">
           <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="card-title mb-0">All Advertisements</h5>
-              <div class="d-flex gap-2">
-                <select class="form-select" id="statusFilterAll" style="width: 200px;">
+            <div class="d-flex justify-content-between align-items-center mb-3 all-ads-toolbar">
+              <h5 class="card-title mb-0" id="allAdsSectionTitle">All Advertisements</h5>
+              <div class="d-flex gap-2 all-ads-toolbar-controls">
+                <select class="form-select" id="statusFilterAll">
                   <option value="">All statuses</option>
                   <option value="Draft">Draft</option>
                   <option value="Pending">Pending</option>
                   <option value="Published">Published</option>
                   <option value="Archived">Archived</option>
+                  <option value="Rejected">Rejected</option>
                 </select>
-                <div class="input-group" style="width: 300px;">
+                <div class="input-group all-ads-search-group">
                   <span class="input-group-text"><i class="bi bi-search"></i></span>
                   <input type="text" class="form-control" id="searchAllAds" placeholder="Search...">
                 </div>
@@ -185,9 +186,9 @@
       <div class="tab-pane fade" id="users" role="tabpanel">
         <div class="card shadow-sm">
           <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 users-toolbar">
               <h5 class="card-title mb-0">Users</h5>
-              <div class="input-group" style="width: 300px;">
+              <div class="input-group users-toolbar-controls">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input type="text" class="form-control" id="searchUsers" placeholder="Search...">
               </div>

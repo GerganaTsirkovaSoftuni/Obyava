@@ -160,12 +160,31 @@
   gap: 0.5rem;
 }
 
+.profile-ad-action-btn .action-label {
+  white-space: nowrap;
+}
+
+@media (max-width: 992px) {
+  .profile-ad-action-btn .action-label {
+    display: none;
+  }
+
+  .profile-ad-action-btn {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 .status-badge {
   display: inline-block;
-  padding: 0.25rem 0.75rem;
+  padding: 0.5rem 1rem;
   border-radius: 20px;
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
 }
 
 .status-draft {
@@ -183,6 +202,10 @@
   color: #155724;
 }
 
+.status-badge.status-published {
+  padding: 0.3rem 0.6rem;
+}
+
 .status-archived {
   background: #f8d7da;
   color: #721c24;
@@ -197,12 +220,12 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.25rem 0.75rem;
+  padding: 0.5rem 1rem;
   background: #dc3545;
   color: #ffffff;
   border-radius: 20px;
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -247,6 +270,12 @@
     width: 80px;
     height: 80px;
     font-size: 2rem;
+  }
+
+  .user-ad-status-wrap {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.35rem !important;
   }
   
   .btn-group {

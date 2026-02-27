@@ -139,15 +139,15 @@ export async function deleteUser(userId) {
     throw new Error('Error deleting user: ' + message);
   }
 
-  // Also try to delete the auth user (requires service role key)
-  // This might fail if using anon key, which is expected
+  // Auth user deletion requires service role key - expected to fail with anon key
+  // Silently skip since database user deletion is sufficient for app functionality
   try {
     const { error: authDeleteError } = await supabase.auth.admin.deleteUser(userId);
-    if (authDeleteError && authDeleteError.code !== 'not_admin') {
+    if (authDeleteError && !authDeleteError.message.includes('Forbidden')) {
       console.warn('Could not delete auth user:', authDeleteError);
     }
   } catch (authError) {
-    console.warn('Could not delete auth user (requires service role):', authError);
+    // Expected: 403 Forbidden when using anon key - ignore silently
   }
 }
 

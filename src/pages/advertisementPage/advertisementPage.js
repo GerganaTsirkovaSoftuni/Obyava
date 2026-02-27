@@ -1,6 +1,6 @@
 import './advertisementPage.css';
 import template from './advertisementPage.html?raw';
-import { getAdvertisementById, deleteAdvertisement, archiveAdvertisement, submitForReview, approveAdvertisement, rejectAdvertisement } from '../../services/adsService.js';
+import { getAdvertisementById, deleteAdvertisement, archiveAdvertisement, submitForReview, approveAdvertisement, rejectAdvertisement, getRejectionReason } from '../../services/adsService.js';
 import { getSession, isUserAdmin } from '../../services/authService.js';
 import { confirm, alert } from '../../services/modalService.js';
 
@@ -124,6 +124,7 @@ export async function renderAdvertisementPage({ navigate, params }) {
       const currentUserId = session?.user?.id || null;
       const isAdmin = session && currentUserId ? (await isUserAdmin(currentUserId)).isAdmin : false;
       const isOwner = currentUserId === ad.seller.id;
+      const isRejectedAd = Boolean(await getRejectionReason(ad.uuid));
 
       const canShowSellerContactActions = !isOwner && !isAdmin;
 
@@ -221,8 +222,16 @@ export async function renderAdvertisementPage({ navigate, params }) {
         });
       }
 
-      if (isAdmin) {
+      const canShowAdminActions = isAdmin && ad.status !== 'Archived';
+
+      if (canShowAdminActions) {
         adminActions.classList.remove('d-none');
+
+        const approveBtn = section.querySelector('#approveBtn');
+        const rejectBtn = section.querySelector('#rejectBtn');
+        const canApprove = ad.status === 'Pending' && !isRejectedAd;
+        approveBtn?.classList.toggle('d-none', !canApprove);
+        rejectBtn?.classList.toggle('d-none', ad.status === 'Published');
 
         section.querySelector('#approveBtn')?.addEventListener('click', async () => {
           try {
@@ -262,6 +271,8 @@ export async function renderAdvertisementPage({ navigate, params }) {
             }
           }
         });
+      } else {
+        adminActions.classList.add('d-none');
       }
 
       loadingState.classList.add('d-none');

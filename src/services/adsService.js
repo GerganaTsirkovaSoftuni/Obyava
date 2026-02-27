@@ -531,7 +531,7 @@ export async function getAllAds(filters = {}) {
     `)
     .order('created_at', { ascending: false});
 
-  if (filters.status) {
+  if (filters.status && filters.status !== 'Rejected') {
     query = query.eq('status', filters.status);
   }
 
@@ -544,9 +544,34 @@ export async function getAllAds(filters = {}) {
     throw new Error('Error loading advertisements: ' + error.message);
   }
 
+  const advertisements = data || [];
+  const adUuids = advertisements.map((ad) => ad.uuid).filter(Boolean);
+
+  let rejectedUuidSet = new Set();
+  if (adUuids.length > 0) {
+    const { data: rejectedRows, error: rejectedError } = await supabase
+      .from('rejected_advertisements')
+      .select('advertisement_uuid')
+      .in('advertisement_uuid', adUuids);
+
+    if (rejectedError) {
+      console.error('Get rejected ads for admin list error:', rejectedError);
+      throw new Error('Error loading advertisements: ' + rejectedError.message);
+    }
+
+    rejectedUuidSet = new Set((rejectedRows || []).map((row) => row.advertisement_uuid));
+  }
+
+  let filteredAds = advertisements;
+  if (filters.status === 'Rejected') {
+    filteredAds = advertisements.filter((ad) => rejectedUuidSet.has(ad.uuid));
+  } else if (filters.status === 'Draft') {
+    filteredAds = advertisements.filter((ad) => !rejectedUuidSet.has(ad.uuid));
+  }
+
   // Fetch images separately for each advertisement
   const adsWithImages = await Promise.all(
-    (data || []).map(async (ad) => {
+    filteredAds.map(async (ad) => {
       const { data: images } = await supabase
         .from('advertisement_images')
         .select('uuid, file_path, position')
@@ -557,6 +582,7 @@ export async function getAllAds(filters = {}) {
       
       return {
         ...ad,
+        status: rejectedUuidSet.has(ad.uuid) ? 'Rejected' : ad.status,
         advertisement_images: resolvedImages
       };
     })
