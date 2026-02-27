@@ -215,6 +215,9 @@
   justify-content: center;
   line-height: 1;
   font-size: 1rem;
+  transform: none;
+  position: static;
+  top: auto;
 }
 
 .all-ads-toolbar-controls {

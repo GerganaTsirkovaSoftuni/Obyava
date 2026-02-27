@@ -118,12 +118,6 @@ export function renderRegisterPage({ navigate }) {
         });
       }
 
-      if (isExistingUserError) {
-        setTimeout(() => {
-          errorMessage.classList.add('d-none');
-          resetRegisterForm();
-        }, 1200);
-      }
       
       // Re-enable submit button
       submitBtn.disabled = false;

@@ -97,11 +97,26 @@ async function resolveAdImageUrls(images = []) {
 }
 
 async function queryPublishedAds(client, filters = {}) {
+  // Get all rejected ad UUIDs to exclude them
+  const { data: rejectedAds } = await client
+    .from('rejected_advertisements')
+    .select('advertisement_uuid');
+  
+  const rejectedUuids = (rejectedAds || []).map(r => r.advertisement_uuid);
+  
   let query = client
     .from('advertisements')
     .select('*')
-    .eq('status', 'Published')
-    .order('created_at', { ascending: false });
+    .eq('status', 'Published');
+
+  // Exclude any rejected ads to prevent them from showing on homepage
+  if (rejectedUuids.length > 0) {
+    for (const uuid of rejectedUuids) {
+      query = query.neq('uuid', uuid);
+    }
+  }
+
+  query = query.order('created_at', { ascending: false });
 
   if (filters.owner_id) {
     query = query.eq('owner_id', filters.owner_id);
@@ -688,18 +703,27 @@ export async function rejectAdvertisement(uuid, reason) {
  * @returns {Promise<Object|null>} - Returns rejection record or null if not found
  */
 export async function getRejectionReason(uuid) {
-  const { data, error } = await supabase
-    .from('rejected_advertisements')
-    .select('rejection_reason, rejection_date')
-    .eq('advertisement_uuid', uuid)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('rejected_advertisements')
+      .select('rejection_reason, rejection_date')
+      .eq('advertisement_uuid', uuid)
+      .single();
 
-  if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-    console.error('Error fetching rejection reason:', error);
+    if (error) {
+      // PGRST116 = no rows found, which is expected
+      // 406 = insufficient permissions/data, also expected for non-owners
+      if (error.code !== 'PGRST116') {
+        console.warn('Warning fetching rejection reason:', error.code);
+      }
+      return null;
+    }
+
+    return data || null;
+  } catch (err) {
+    // Silently handle any network or permission errors
     return null;
   }
-
-  return data || null;
 }
 
 /**

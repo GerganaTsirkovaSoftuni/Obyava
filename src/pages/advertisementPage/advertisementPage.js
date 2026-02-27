@@ -124,7 +124,16 @@ export async function renderAdvertisementPage({ navigate, params }) {
       const currentUserId = session?.user?.id || null;
       const isAdmin = session && currentUserId ? (await isUserAdmin(currentUserId)).isAdmin : false;
       const isOwner = currentUserId === ad.seller.id;
-      const isRejectedAd = Boolean(await getRejectionReason(ad.uuid));
+      
+      // Only fetch rejection reason if owner or admin (regular users can't access this data for other users' ads)
+      let isRejectedAd = false;
+      if (isOwner || isAdmin) {
+        try {
+          isRejectedAd = Boolean(await getRejectionReason(ad.uuid));
+        } catch (err) {
+          console.warn('Could not fetch rejection reason:', err);
+        }
+      }
 
       const canShowSellerContactActions = !isOwner && !isAdmin;
 

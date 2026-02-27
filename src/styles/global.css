@@ -179,6 +179,13 @@ a:hover {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Align icons with text in buttons on desktop/tablet */
+.btn i,
+button i {
+  position: relative;
+  top: 2px;
+}
+
 /* Form inputs standard font size */
 .form-control,
 .form-select,
