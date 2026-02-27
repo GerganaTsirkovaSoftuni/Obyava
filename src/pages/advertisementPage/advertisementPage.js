@@ -35,7 +35,7 @@ async function loadAdvertisement(adUuid) {
   };
 }
 
-export function renderAdvertisementPage({ navigate, params }) {
+export async function renderAdvertisementPage({ navigate, params }) {
   const wrapper = document.createElement('div');
   wrapper.innerHTML = template;
   const section = wrapper.firstElementChild;
@@ -274,7 +274,7 @@ export function renderAdvertisementPage({ navigate, params }) {
     }
   }
 
-  displayAdvertisement();
+  await displayAdvertisement();
 
   return section;
 }

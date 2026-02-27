@@ -34,7 +34,7 @@ function createAdCard(ad, navigate) {
   return col;
 }
 
-export function renderUserAdsPage({ navigate, params }) {
+export async function renderUserAdsPage({ navigate, params }) {
   const wrapper = document.createElement('div');
   wrapper.innerHTML = template;
   const section = wrapper.firstElementChild;
@@ -156,7 +156,7 @@ export function renderUserAdsPage({ navigate, params }) {
     });
   });
 
-  loadSellerAds(true);
+  await loadSellerAds(true);
 
   return section;
 }

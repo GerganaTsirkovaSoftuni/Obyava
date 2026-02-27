@@ -218,7 +218,7 @@ async function loadUserAds(statusFilter = '', offset = 0, limit = PAGE_SIZE + 1)
   }));
 }
 
-export function renderProfilePage({ navigate }) {
+export async function renderProfilePage({ navigate }) {
   const wrapper = document.createElement('div');
   wrapper.innerHTML = template;
   const section = wrapper.firstElementChild;
@@ -246,6 +246,7 @@ export function renderProfilePage({ navigate }) {
   const settingsTabBtn = section.querySelector('#settings-tab');
   const myAdsTabItem = myAdsTabBtn?.closest('.nav-item');
   const myAdsPane = section.querySelector('#my-ads');
+  const settingsPane = section.querySelector('#settings');
   const editProfileBtn = section.querySelector('#editProfileBtn');
   const dangerZoneCard = section.querySelector('#dangerZoneCard');
   
@@ -291,11 +292,15 @@ export function renderProfilePage({ navigate }) {
       profileStatsRow?.classList.add('d-none');
       myAdsTabItem?.classList.add('d-none');
       myAdsPane?.classList.add('d-none');
+      myAdsPane?.classList.remove('show', 'active');
       createNewAdBtn?.classList.add('d-none');
       profileTabs?.classList.add('d-none');
       editProfileBtn?.classList.add('d-none');
       deleteAccountBtn?.classList.add('d-none');
       dangerZoneCard?.classList.add('d-none');
+
+      settingsPane?.classList.add('show', 'active');
+      settingsPane?.classList.remove('d-none');
 
       if (settingsTabBtn) {
         const bsTab = new window.bootstrap.Tab(settingsTabBtn);
@@ -399,42 +404,6 @@ export function renderProfilePage({ navigate }) {
     }
   });
 
-  (async () => {
-    const isAdminProfile = await applyAdminProfileLayout();
-
-    if (!isAdminProfile) {
-      // Restore tab state if coming back from an operation
-      const savedState = getTabState();
-
-      // Restore active tab
-      if (savedState.tab && savedState.tab !== 'my-ads') {
-        const tabToActivate = section.querySelector(`#${savedState.tab}-tab`);
-
-        if (tabToActivate) {
-          // Use Bootstrap's Tab API to properly activate the tab
-          const bsTab = new window.bootstrap.Tab(tabToActivate);
-          bsTab.show();
-        }
-      }
-
-      // Restore active filter
-      if (savedState.filter !== activeStatusFilter) {
-        activeStatusFilter = savedState.filter;
-        const filterToActivate = section.querySelector(`input[name="statusFilter"][value="${savedState.filter}"]`);
-        if (filterToActivate) {
-          filterToActivate.checked = true;
-        }
-      }
-
-      // Clear the saved state after restoring
-      clearTabState();
-
-      // Initial load
-      await refreshProfileAdCounters();
-      displayUserAds(activeStatusFilter, true);
-    }
-  })();
-
   // Get form inputs for validation
   const updateFullNameInput = updateProfileForm.querySelector('#updateFullName');
   const updatePhoneInput = updateProfileForm.querySelector('#updatePhone');
@@ -513,9 +482,11 @@ export function renderProfilePage({ navigate }) {
 
   updateProfileSubmitBtn.disabled = true;
   cancelProfileChangesBtn.disabled = true;
-  syncProfileFormFromServer().catch((error) => {
+  try {
+    await syncProfileFormFromServer();
+  } catch (error) {
     console.error('Error loading profile:', error);
-  });
+  }
 
   // Add real-time validation for profile form
   addRealTimeValidation(updateFullNameInput, (input) => validateRequired(input, 'Full name'));
@@ -647,6 +618,34 @@ export function renderProfilePage({ navigate }) {
       }
     }
   });
+
+  const isAdminProfile = await applyAdminProfileLayout();
+
+  if (!isAdminProfile) {
+    const savedState = getTabState();
+
+    if (savedState.tab && savedState.tab !== 'my-ads') {
+      const tabToActivate = section.querySelector(`#${savedState.tab}-tab`);
+
+      if (tabToActivate) {
+        const bsTab = new window.bootstrap.Tab(tabToActivate);
+        bsTab.show();
+      }
+    }
+
+    if (savedState.filter !== activeStatusFilter) {
+      activeStatusFilter = savedState.filter;
+      const filterToActivate = section.querySelector(`input[name="statusFilter"][value="${savedState.filter}"]`);
+      if (filterToActivate) {
+        filterToActivate.checked = true;
+      }
+    }
+
+    clearTabState();
+
+    await refreshProfileAdCounters();
+    await displayUserAds(activeStatusFilter, true);
+  }
 
   return section;
 }

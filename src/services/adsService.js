@@ -281,7 +281,7 @@ export async function getUserAds(filters = {}) {
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false });
 
-  if (filters.status) {
+  if (filters.status && filters.status !== 'Rejected') {
     query = query.eq('status', filters.status);
   }
 
@@ -294,9 +294,35 @@ export async function getUserAds(filters = {}) {
     throw new Error('Error loading advertisements: ' + error.message);
   }
 
+  const advertisements = data || [];
+  const adUuids = advertisements.map((ad) => ad.uuid).filter(Boolean);
+
+  let rejectedUuidSet = new Set();
+  if (adUuids.length > 0) {
+    const { data: rejectedRows, error: rejectedError } = await supabase
+      .from('rejected_advertisements')
+      .select('advertisement_uuid')
+      .eq('owner_id', user.id)
+      .in('advertisement_uuid', adUuids);
+
+    if (rejectedError) {
+      console.error('Get rejected ads for user error:', rejectedError);
+      throw new Error('Error loading advertisements: ' + rejectedError.message);
+    }
+
+    rejectedUuidSet = new Set((rejectedRows || []).map((row) => row.advertisement_uuid));
+  }
+
+  let filteredAds = advertisements;
+  if (filters.status === 'Rejected') {
+    filteredAds = advertisements.filter((ad) => rejectedUuidSet.has(ad.uuid));
+  } else if (filters.status === 'Draft') {
+    filteredAds = advertisements.filter((ad) => !rejectedUuidSet.has(ad.uuid));
+  }
+
   // Fetch images separately for each advertisement
   const adsWithImages = await Promise.all(
-    (data || []).map(async (ad) => {
+    filteredAds.map(async (ad) => {
       const { data: images } = await supabase
         .from('advertisement_images')
         .select('uuid, file_path, position')
@@ -307,6 +333,7 @@ export async function getUserAds(filters = {}) {
       
       return {
         ...ad,
+        status: rejectedUuidSet.has(ad.uuid) ? 'Rejected' : ad.status,
         advertisement_images: resolvedImages
       };
     })
@@ -695,12 +722,7 @@ export async function getUserAdStats() {
 
   const { data, error } = await supabase
     .from('advertisements')
-    .select('status')
-    .eq('owner_id', user.id);
-
-  const { count: rejectedCount, error: rejectedCountError } = await supabase
-    .from('rejected_advertisements')
-    .select('advertisement_uuid', { count: 'exact', head: true })
+    .select('uuid, status')
     .eq('owner_id', user.id);
 
   if (error) {
@@ -708,19 +730,49 @@ export async function getUserAdStats() {
     throw new Error('Error loading statistics: ' + error.message);
   }
 
-  if (rejectedCountError) {
-    console.error('Get rejected ads stats error:', rejectedCountError);
-    throw new Error('Error loading statistics: ' + rejectedCountError.message);
+  const ads = data || [];
+
+  const { data: rejectedRows, error: rejectedRowsError } = await supabase
+    .from('rejected_advertisements')
+    .select('advertisement_uuid')
+    .eq('owner_id', user.id);
+
+  if (rejectedRowsError) {
+    console.error('Get rejected ads list error:', rejectedRowsError);
+    throw new Error('Error loading statistics: ' + rejectedRowsError.message);
   }
 
-  const ads = data || [];
+  const rejectedSet = new Set((rejectedRows || []).map((row) => row.advertisement_uuid));
+
+  let published = 0;
+  let pending = 0;
+  let drafts = 0;
+  let archived = 0;
+  let rejected = 0;
+
+  ads.forEach((ad) => {
+    if (rejectedSet.has(ad.uuid)) {
+      rejected += 1;
+      return;
+    }
+
+    if (ad.status === 'Published') {
+      published += 1;
+    } else if (ad.status === 'Pending') {
+      pending += 1;
+    } else if (ad.status === 'Draft') {
+      drafts += 1;
+    } else if (ad.status === 'Archived') {
+      archived += 1;
+    }
+  });
   
   return {
     total: ads.length,
-    published: ads.filter(ad => ad.status === 'Published').length,
-    pending: ads.filter(ad => ad.status === 'Pending').length,
-    drafts: ads.filter(ad => ad.status === 'Draft').length,
-    archived: ads.filter(ad => ad.status === 'Archived').length,
-    rejected: rejectedCount || 0
+    published,
+    pending,
+    drafts,
+    archived,
+    rejected
   };
 }

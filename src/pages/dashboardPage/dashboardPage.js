@@ -226,7 +226,7 @@ async function loadUsers() {
   }));
 }
 
-export function renderDashboardPage({ navigate }) {
+export async function renderDashboardPage({ navigate }) {
   const wrapper = document.createElement('div');
   wrapper.innerHTML = template;
   const section = wrapper.firstElementChild;
@@ -539,20 +539,19 @@ export function renderDashboardPage({ navigate }) {
     }
   });
 
-  // Initial load
-  (async () => {
-    try {
-      const { user } = await getCurrentUser();
-      currentAdminId = user?.id || null;
-    } catch (error) {
-      console.error('Error loading current admin:', error);
-      currentAdminId = null;
-    }
+  try {
+    const { user } = await getCurrentUser();
+    currentAdminId = user?.id || null;
+  } catch (error) {
+    console.error('Error loading current admin:', error);
+    currentAdminId = null;
+  }
 
-    loadPendingAdsData(true);
-    loadAllAdsData(true);
-    loadUsersData();
-  })();
+  await Promise.all([
+    loadPendingAdsData(true),
+    loadAllAdsData(true),
+    loadUsersData()
+  ]);
 
   return section;
 }

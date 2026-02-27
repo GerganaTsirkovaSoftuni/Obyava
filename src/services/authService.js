@@ -24,6 +24,15 @@ export async function signUp(email, password, metadata = {}) {
 
     if (error) throw error;
 
+    const isExistingUserSignUp =
+      data?.user &&
+      Array.isArray(data.user.identities) &&
+      data.user.identities.length === 0;
+
+    if (isExistingUserSignUp) {
+      throw new Error('This email is already registered. Please use another email or sign in.');
+    }
+
     // Create user profile in public.users table
     if (data.user) {
       const { error: profileError } = await supabase

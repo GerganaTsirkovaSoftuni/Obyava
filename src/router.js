@@ -54,22 +54,49 @@ function resolveRouteTitle(route, params) {
 }
 
 export function setupRoutes(mainElement) {
+  let navigationRequestId = 0;
+
   routeMap.forEach((route) => {
-    router.on(route.path, (match) => {
+    router.on(route.path, async (match) => {
+      const requestId = ++navigationRequestId;
+      showRoutePreloader();
+
       const params = match?.data ?? {};
       setPageTitle(resolveRouteTitle(route, params));
-      const content = route.view({ navigate, params });
-      mainElement.replaceChildren(content);
-      
-      // Scroll to top on navigation
-      window.scrollTo(0, 0);
+
+      try {
+        const content = await route.view({ navigate, params });
+
+        if (requestId !== navigationRequestId) {
+          return;
+        }
+
+        mainElement.replaceChildren(content);
+        window.scrollTo(0, 0);
+      } catch (error) {
+        console.error(`Error rendering route ${route.path}:`, error);
+
+        if (requestId !== navigationRequestId) {
+          return;
+        }
+
+        setPageTitle('Not Found');
+        mainElement.replaceChildren(renderNotFoundPage({ navigate }));
+        window.scrollTo(0, 0);
+      } finally {
+        if (requestId === navigationRequestId) {
+          hideRoutePreloader();
+        }
+      }
     });
   });
 
   router.notFound(() => {
+    showRoutePreloader();
     setPageTitle('Not Found');
     mainElement.replaceChildren(renderNotFoundPage({ navigate }));
     window.scrollTo(0, 0);
+    hideRoutePreloader();
   });
 
   router.resolve();

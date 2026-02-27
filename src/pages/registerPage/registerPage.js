@@ -25,6 +25,14 @@ export function renderRegisterPage({ navigate }) {
   const passwordInput = form.querySelector('#password');
   const confirmPasswordInput = form.querySelector('#confirmPassword');
 
+  function resetRegisterForm() {
+    form.reset();
+    clearFormErrors(form);
+    [fullNameInput, phoneInput, emailInput, passwordInput, confirmPasswordInput].forEach((input) => {
+      input.classList.remove('is-valid', 'is-invalid');
+    });
+  }
+
   // Add real-time validation
   addRealTimeValidation(fullNameInput, (input) => validateRequired(input, 'Full name'));
   addRealTimeValidation(phoneInput, validatePhoneField);
@@ -87,6 +95,9 @@ export function renderRegisterPage({ navigate }) {
       errorMessage.classList.remove('d-none');
 
       const normalizedMessage = (error?.message || '').toLowerCase();
+      const isExistingUserError =
+        (normalizedMessage.includes('already') && normalizedMessage.includes('registered')) ||
+        normalizedMessage.includes('user already registered');
 
       if (normalizedMessage.includes('email') || normalizedMessage.includes('registered')) {
         emailInput.classList.remove('is-valid');
@@ -105,6 +116,13 @@ export function renderRegisterPage({ navigate }) {
           input.classList.remove('is-valid');
           input.classList.add('is-invalid');
         });
+      }
+
+      if (isExistingUserError) {
+        setTimeout(() => {
+          errorMessage.classList.add('d-none');
+          resetRegisterForm();
+        }, 1200);
       }
       
       // Re-enable submit button

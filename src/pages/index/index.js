@@ -102,7 +102,7 @@ async function populateCategories(section) {
   }
 }
 
-export function renderIndexPage({ navigate }) {
+export async function renderIndexPage({ navigate }) {
   const wrapper = document.createElement('div');
   wrapper.innerHTML = template;
   const section = wrapper.firstElementChild;
@@ -122,29 +122,21 @@ export function renderIndexPage({ navigate }) {
   let currentCategory = '';
   let isLoadingMore = false;
 
-  // Show create button only for authenticated regular users
-  (async () => {
-    try {
-      const { user } = await getCurrentUser();
-      if (!user) {
-        return;
-      }
-
+  try {
+    const { user } = await getCurrentUser();
+    if (user) {
       const { isAdmin } = await isUserAdmin(user.id);
-      if (isAdmin) {
-        createAdBtn.classList.add('d-none');
-        return;
+      if (!isAdmin) {
+        createAdBtn.classList.remove('d-none');
+        createAdBtn.addEventListener('click', () => navigate('/create-advertisement'));
       }
-
-      createAdBtn.classList.remove('d-none');
-      createAdBtn.addEventListener('click', () => navigate('/create-advertisement'));
-    } catch (error) {
-      console.error('Error checking create-ad visibility:', error);
-      createAdBtn.classList.add('d-none');
     }
-  })();
+  } catch (error) {
+    console.error('Error checking create-ad visibility:', error);
+    createAdBtn.classList.add('d-none');
+  }
 
-  populateCategories(section);
+  await populateCategories(section);
 
   function renderAds() {
     adsGrid.innerHTML = '';
@@ -241,7 +233,7 @@ export function renderIndexPage({ navigate }) {
 
   // Load initial ads
   loadingState.classList.add('d-none');
-  displayAds();
+  await displayAds();
   
   return section;
 }

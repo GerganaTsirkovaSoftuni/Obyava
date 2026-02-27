@@ -7,3 +7,10 @@
   max-width: 520px;
   margin: 0 auto;
 }
+
+.not-found-page a.btn.btn-primary {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+}
