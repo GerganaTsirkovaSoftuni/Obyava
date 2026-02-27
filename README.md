@@ -6,7 +6,25 @@
 
 🌐 **Live Demo**: [https://melodious-trifle-b87c15.netlify.app](https://melodious-trifle-b87c15.netlify.app)
 
-## 📋 Project Description
+## � Quick Start
+
+After cloning this project from GitHub:
+
+```bash
+# 1. Install dependencies (required!)
+npm install
+
+# 2. Start development server
+npm run dev
+```
+
+The server will run at **http://localhost:5173**
+
+💡 **Note**: You must run `npm install` before `npm run dev` or the project will not work!
+
+---
+
+## �📋 Project Description
 
 **Obyava** is a modern, full-stack marketplace application built to facilitate peer-to-peer buying and selling of classified advertisements. It's inspired by platforms like OLX, providing users with an intuitive interface to post, manage, and browse advertisements across multiple product categories.
 
@@ -241,7 +259,9 @@ git clone <repository-url>
 cd Obyava
 ```
 
-### Step 2: Install Frontend Dependencies
+### Step 2: Install Dependencies (Required!)
+
+**After cloning the project from GitHub, you MUST install dependencies before running the project:**
 
 ```bash
 npm install
@@ -250,6 +270,8 @@ npm install
 This installs:
 - `vite` - Build tool
 - `navigo` - Router library
+
+⚠️ **Important**: The project will not run without installing dependencies first!
 
 ### Step 3: Set Up Environment Variables
 
@@ -266,11 +288,15 @@ Get these values from your Supabase project dashboard:
 
 ### Step 4: Start Development Server
 
+**After installing dependencies, start the development server:**
+
 ```bash
 npm run dev
 ```
 
 Server runs on: **http://localhost:5173**
+
+The development server will automatically open in your browser and support hot module replacement (HMR) for instant updates during development.
 
 ### Step 5: Build for Production
 

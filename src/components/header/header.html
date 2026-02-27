@@ -31,7 +31,7 @@
           </li>
           
           <!-- Logged In Navigation -->
-          <li class="nav-item logged-in-only d-none">
+          <li class="nav-item logged-in-only d-none new-ad-link">
             <a class="nav-link" href="/create-advertisement" data-link>
               <i class="bi bi-plus-circle me-1"></i>New Ad
             </a>
@@ -45,8 +45,11 @@
           
           <!-- Admin Navigation -->
           <li class="nav-item admin-only d-none">
-            <a class="nav-link" href="/dashboard" data-link>
+            <a class="nav-link admin-panel-link" href="/dashboard" data-link>
               <i class="bi bi-shield-check me-1"></i>Admin Panel
+              <span class="admin-notification-badge hidden" id="adminNotificationBadge">
+                <i class="bi bi-exclamation-circle-fill"></i>
+              </span>
             </a>
           </li>
           

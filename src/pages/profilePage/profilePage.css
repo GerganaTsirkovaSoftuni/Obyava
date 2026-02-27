@@ -1,6 +1,20 @@
 .profile-page {
   min-height: calc(100vh - 120px);
   background: #f8f9fa;
+  position: relative;
+}
+
+.profile-page.profile-role-pending > *:not(.profile-role-loader) {
+  visibility: hidden;
+}
+
+.profile-role-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
 }
 
 .profile-avatar {
@@ -37,24 +51,25 @@
 }
 
 .nav-tabs {
-  border-bottom: 2px solid #dee2e6;
+  border-bottom: 2px solid #d1b6e9
 }
 
 .nav-tabs .nav-link {
-  color: #6c757d;
+  color: #000000;
   font-weight: 500;
   border: none;
   border-bottom: 2px solid transparent;
+  border-radius: 0;
   padding: 0.75rem 1.5rem;
 }
 
 .nav-tabs .nav-link:hover {
-  color: #667eea;
+  color: #000000;
   border-color: transparent;
 }
 
 .nav-tabs .nav-link.active {
-  color: #667eea;
+  color: #000000;
   background: transparent;
   border-bottom-color: #667eea;
 }
@@ -131,6 +146,15 @@
   background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
 }
 
+.user-ad-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  color: #9ca3af;
+  background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
+}
+
 .user-ad-title {
   font-size: 1.1rem;
   font-weight: 600;
@@ -177,6 +201,36 @@
   color: #721c24;
 }
 
+.status-rejected {
+  background: #dc3545;
+  color: #ffffff;
+}
+
+.rejection-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background: #dc3545;
+  color: #ffffff;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rejection-indicator:hover {
+  background: #bb2d3b;
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.rejection-indicator i {
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 768px) {
   .profile-avatar {
     width: 60px;
@@ -191,6 +245,12 @@
   .user-ad-image {
     width: 80px;
     height: 80px;
+  }
+  
+  .user-ad-image-placeholder {
+    width: 80px;
+    height: 80px;
+    font-size: 2rem;
   }
   
   .btn-group {

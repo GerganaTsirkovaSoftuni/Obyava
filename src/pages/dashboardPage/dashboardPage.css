@@ -1,5 +1,4 @@
 .admin-dashboard-page {
-  min-height: calc(100vh - 120px);
   background: #f8f9fa;
 }
 
@@ -73,10 +72,6 @@
   background: #f8f9fa;
 }
 
-.admin-ad-row:last-child {
-  border-bottom: none;
-}
-
 .admin-ad-image {
   width: 80px;
   height: 80px;
@@ -128,6 +123,11 @@
 .status-archived {
   background: #f8d7da;
   color: #721c24;
+}
+
+.status-rejected {
+  background: #dc3545;
+  color: #ffffff;
 }
 
 .user-row {

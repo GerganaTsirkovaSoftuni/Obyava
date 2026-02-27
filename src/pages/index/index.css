@@ -101,6 +101,64 @@
   color: #6c757d;
 }
 
+.ad-card-skeleton {
+  pointer-events: none;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ad-skeleton-image,
+.ad-skeleton-line,
+.ad-skeleton-pill,
+.ad-skeleton-footer {
+  background: linear-gradient(90deg, #eceff5 25%, #f7f8fc 37%, #eceff5 63%);
+  background-size: 400% 100%;
+  animation: adSkeletonShimmer 1.4s ease-in-out infinite;
+}
+
+.ad-skeleton-image {
+  height: 200px;
+}
+
+.ad-skeleton-line {
+  height: 14px;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+
+.ad-skeleton-line.title {
+  width: 80%;
+  height: 18px;
+}
+
+.ad-skeleton-line.price {
+  width: 48%;
+  height: 22px;
+}
+
+.ad-skeleton-pill {
+  width: 38%;
+  height: 24px;
+  border-radius: 999px;
+  margin-bottom: 0.75rem;
+}
+
+.ad-skeleton-footer {
+  width: 55%;
+  height: 12px;
+  border-radius: 8px;
+}
+
+@keyframes adSkeletonShimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
 /* Modern load more button */
 #loadMoreBtn {
   border: none;

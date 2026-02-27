@@ -30,17 +30,27 @@ function createAdCard(ad, navigate) {
     </div>
   `;
 
-  console.log('🎫 Created card:', {
-    title: ad.title,
-    className: col.className,
-    hasHTMLContent: col.innerHTML.length > 0,
-    element: col,
-    image_url: ad.image_url
-  });
-
   col.addEventListener('click', () => {
     navigate(`/advertisement/${ad.uuid}`);
   });
+
+  return col;
+}
+
+function createAdCardSkeleton() {
+  const col = document.createElement('div');
+  col.className = 'col-12 col-sm-6 col-md-4 col-lg-3';
+  col.innerHTML = `
+    <div class="card ad-card-skeleton shadow-sm" aria-hidden="true">
+      <div class="ad-skeleton-image"></div>
+      <div class="card-body">
+        <div class="ad-skeleton-line title"></div>
+        <div class="ad-skeleton-line price"></div>
+        <div class="ad-skeleton-pill"></div>
+        <div class="ad-skeleton-footer"></div>
+      </div>
+    </div>
+  `;
 
   return col;
 }
@@ -54,9 +64,6 @@ async function loadAdvertisements(searchQuery = '', categoryId = '', offset = 0,
       offset
     });
 
-    console.log('📢 Raw ads from API:', ads);
-    console.log('📊 Total ads fetched:', ads.length);
-
     // Format data for display
     const formattedAds = ads.map(ad => ({
       uuid: ad.uuid,
@@ -69,7 +76,6 @@ async function loadAdvertisements(searchQuery = '', categoryId = '', offset = 0,
       status: ad.status
     }));
 
-    console.log('📋 Formatted ads for display:', formattedAds);
     return formattedAds;
   } catch (error) {
     console.error('Error loading advertisements:', error);
@@ -101,11 +107,6 @@ export function renderIndexPage({ navigate }) {
   wrapper.innerHTML = template;
   const section = wrapper.firstElementChild;
 
-  console.log('🔍 Page render - section element:', section);
-  console.log('🔍 Section class:', section?.className);
-  console.log('🔍 Section HTML length:', section?.innerHTML?.length);
-  console.log('🔍 Section parent when returned:', section?.parentElement);
-
   const searchForm = section.querySelector('#searchForm');
   const adsGrid = section.querySelector('#adsGrid');
   const emptyState = section.querySelector('#emptyState');
@@ -113,11 +114,6 @@ export function renderIndexPage({ navigate }) {
   const createAdBtn = section.querySelector('#createAdBtn');
   const paginationWrap = section.querySelector('#paginationWrap');
   const loadMoreBtn = section.querySelector('#loadMoreBtn');
-
-  console.log('✓ Found searchForm:', !!searchForm);
-  console.log('✓ Found adsGrid:', !!adsGrid);
-  console.log('✓ Found emptyState:', !!emptyState);
-  console.log('✓ Found loadingState:', !!loadingState);
 
   let allAds = [];
   let hasMoreAds = false;
@@ -137,37 +133,32 @@ export function renderIndexPage({ navigate }) {
   populateCategories(section);
 
   function renderAds() {
-    console.log('🎨 renderAds called - allAds count:', allAds.length);
-    console.log('🎯 adsGrid element:', adsGrid);
-    console.log('🎯 adsGrid HTML before clear:', adsGrid.innerHTML.substring(0, 100));
-    
     adsGrid.innerHTML = '';
 
     if (allAds.length === 0) {
-      console.log('❌ No ads to display - showing empty state');
       emptyState.classList.remove('d-none');
       paginationWrap.classList.add('d-none');
       return;
     }
 
-    console.log('✅ Rendering', allAds.length, 'ads');
     emptyState.classList.add('d-none');
 
     allAds.forEach((ad, index) => {
-      console.log(`  Card ${index}:`, ad.title);
       const adCard = createAdCard(ad, navigate);
-      console.log(`  Appending card ${index} to grid. Card element:`, adCard);
       adsGrid.appendChild(adCard);
-      console.log(`  After append, grid has ${adsGrid.children.length} children`);
     });
-
-    console.log('📊 Final grid state - children count:', adsGrid.children.length);
-    console.log('📊 Grid HTML after render:', adsGrid.innerHTML.substring(0, 200));
 
     if (hasMoreAds && allAds.length > 0) {
       paginationWrap.classList.remove('d-none');
     } else {
       paginationWrap.classList.add('d-none');
+    }
+  }
+
+  function renderAdsSkeleton(count = PAGE_SIZE) {
+    adsGrid.innerHTML = '';
+    for (let i = 0; i < count; i += 1) {
+      adsGrid.appendChild(createAdCardSkeleton());
     }
   }
 
@@ -178,9 +169,8 @@ export function renderIndexPage({ navigate }) {
       currentOffset = 0;
       hasMoreAds = false;
 
-      loadingState.classList.remove('d-none');
       emptyState.classList.add('d-none');
-      adsGrid.innerHTML = '';
+      renderAdsSkeleton(PAGE_SIZE);
       paginationWrap.classList.add('d-none');
 
       const adsChunk = await loadAdvertisements(searchQuery, category, currentOffset, PAGE_SIZE + 1);
@@ -190,12 +180,11 @@ export function renderIndexPage({ navigate }) {
       allAds = visibleChunk;
       currentOffset += visibleChunk.length;
 
-      loadingState.classList.add('d-none');
       renderAds();
 
     } catch (error) {
       console.error('Error loading advertisements:', error);
-      loadingState.classList.add('d-none');
+      adsGrid.innerHTML = '';
       emptyState.classList.remove('d-none');
       paginationWrap.classList.add('d-none');
     }
@@ -237,14 +226,8 @@ export function renderIndexPage({ navigate }) {
   });
 
   // Load initial ads
+  loadingState.classList.add('d-none');
   displayAds();
-
-  console.log('🎬 INDEX PAGE - FINAL STATE BEFORE RETURN:');
-  console.log('  Section element:', section);
-  console.log('  Section parent:', section?.parentElement);
-  console.log('  Section in DOM:', document.body.contains(section));
-  console.log('  adsGrid children count:', adsGrid?.children?.length);
-  console.log('  Full section HTML length:', section?.innerHTML?.length);
   
   return section;
 }

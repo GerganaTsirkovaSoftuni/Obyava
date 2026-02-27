@@ -619,7 +619,9 @@ textarea.form-control.is-valid:focus,
   padding: 1.5rem;
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   border-bottom: none;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-title {

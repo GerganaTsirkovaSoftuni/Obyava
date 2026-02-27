@@ -1,0 +1,9 @@
+.not-found-page {
+  min-height: calc(100vh - 120px);
+  background: #f8f9fa;
+}
+
+.not-found-content {
+  max-width: 520px;
+  margin: 0 auto;
+}

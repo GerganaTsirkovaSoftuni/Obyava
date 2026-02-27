@@ -38,6 +38,19 @@ export async function updateUserRole(userId, newRole) {
     throw new Error('Invalid role. Allowed values: user, admin');
   }
 
+  const {
+    data: { user: currentUser },
+    error: currentUserError
+  } = await supabase.auth.getUser();
+
+  if (currentUserError) {
+    throw new Error('Error validating current user: ' + currentUserError.message);
+  }
+
+  if (currentUser?.id === userId && newRole === 'user') {
+    throw new Error('You cannot set your own account as Regular user. Another admin must do this.');
+  }
+
   // Update in users table
   const { error: updateError } = await supabase
     .from('users')
@@ -79,21 +92,60 @@ export async function updateUserRole(userId, newRole) {
  * @param {string} userId - User ID
  */
 export async function deleteUser(userId) {
-  // Note: This will cascade delete all user's advertisements due to FK constraints
+  const {
+    data: { user: currentUser },
+    error: currentUserError
+  } = await supabase.auth.getUser();
+
+  if (currentUserError) {
+    throw new Error('Error validating current user: ' + currentUserError.message);
+  }
+
+  if (currentUser?.id === userId) {
+    throw new Error('You cannot delete your own account from the admin panel.');
+  }
+
   const { error } = await supabase
-    .from('users')
-    .delete()
-    .eq('id', userId);
+    .rpc('admin_delete_user', { target_user_id: userId });
 
   if (error) {
-    console.error('Delete user error:', error);
-    throw new Error('Error deleting user: ' + error.message);
+    console.error('Delete user RPC error:', error);
+    const message = String(error.message || '');
+
+    if (message.includes('not_admin')) {
+      throw new Error('User not allowed. Admin privileges are required to delete users.');
+    }
+
+    if (message.includes('cannot_delete_self')) {
+      throw new Error('You cannot delete your own account from the admin panel.');
+    }
+
+    if (message.includes('target_must_be_regular_user')) {
+      throw new Error('Only accounts with Regular role can be deleted.');
+    }
+
+    if (message.includes('user_not_found')) {
+      throw new Error('User not found.');
+    }
+
+    if (message.includes('delete_blocked')) {
+      throw new Error('Delete was blocked by database policy. Apply the latest admin delete hotfix migration.');
+    }
+
+    if (message.includes('Could not find the function public.admin_delete_user')) {
+      throw new Error('Database hotfix is missing. Run migration 20260227_000014_admin_delete_user_hotfix.sql in Supabase.');
+    }
+
+    throw new Error('Error deleting user: ' + message);
   }
 
   // Also try to delete the auth user (requires service role key)
   // This might fail if using anon key, which is expected
   try {
-    await supabase.auth.admin.deleteUser(userId);
+    const { error: authDeleteError } = await supabase.auth.admin.deleteUser(userId);
+    if (authDeleteError && authDeleteError.code !== 'not_admin') {
+      console.warn('Could not delete auth user:', authDeleteError);
+    }
   } catch (authError) {
     console.warn('Could not delete auth user (requires service role):', authError);
   }

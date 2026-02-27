@@ -166,8 +166,7 @@ a.nav-link.btn-register:focus-visible {
 .navbar-nav.auth-loading .logged-out-only,
 .navbar-nav.auth-loading .logged-in-only,
 .navbar-nav.auth-loading .admin-only {
-  opacity: 0;
-  visibility: hidden;
+  display: none !important;
 }
 
 /* Smooth transition when auth state is determined */
@@ -175,6 +174,66 @@ a.nav-link.btn-register:focus-visible {
 .navbar-nav .logged-in-only,
 .navbar-nav .admin-only {
   transition: opacity 0.2s ease-in-out;
+}
+
+/* Admin Notification Badge */
+.admin-panel-link {
+  position: relative;
+}
+
+.admin-notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+  border: 2px solid white;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  color: white;
+  box-shadow: 0 2px 8px rgba(245, 87, 108, 0.4);
+  animation: adminBadgePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.admin-notification-badge.hidden {
+  display: none !important;
+  animation: none !important;
+}
+
+.admin-notification-badge i {
+  color: white !important;
+  font-size: 0.65rem;
+  line-height: 1;
+}
+
+@keyframes adminBadgePulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+/* Pulsing glow effect for the badge */
+@keyframes adminBadgeGlow {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(245, 87, 108, 0.4);
+  }
+  50% {
+    box-shadow: 0 2px 16px rgba(245, 87, 108, 0.8);
+  }
+}
+
+/* Add hover effect to admin panel link when badge is present */
+.admin-panel-link:hover .admin-notification-badge {
+  animation: adminBadgeGlow 1s ease-in-out infinite;
 }
 
 @media (max-width: 991px) {

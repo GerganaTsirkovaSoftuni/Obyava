@@ -28,7 +28,7 @@
     </div>
 
     <!-- Stats Row -->
-    <div class="row mb-4">
+    <div class="row mb-4" id="profileStatsRow">
       <div class="col-md-3 col-6 mb-3">
         <div class="card shadow-sm text-center">
           <div class="card-body">
@@ -110,6 +110,9 @@
             
             <input type="radio" class="btn-check" name="statusFilter" id="filter-archived" value="Archived">
             <label class="btn btn-outline-primary" for="filter-archived">Archived</label>
+            
+            <input type="radio" class="btn-check" name="statusFilter" id="filter-rejected" value="Rejected">
+            <label class="btn btn-outline-danger" for="filter-rejected">Rejected</label>
           </div>
           
           <button id="createNewAdBtn" class="btn btn-success float-end">
@@ -142,7 +145,7 @@
       <!-- Settings Tab -->
       <div class="tab-pane fade" id="settings" role="tabpanel">
         <div class="row">
-          <div class="col-lg-8">
+          <div class="col-12">
             <div class="card shadow-sm mb-4">
               <div class="card-body">
                 <h5 class="card-title mb-3">Personal Information</h5>
@@ -163,9 +166,14 @@
                     <div class="form-text">Email cannot be changed</div>
                   </div>
                   
-                  <button type="submit" id="updateProfileSubmitBtn" class="btn btn-primary profile-save-btn" disabled>
-                    <i class="bi bi-save me-2"></i>Save Changes
-                  </button>
+                  <div class="d-flex gap-2">
+                    <button type="submit" id="updateProfileSubmitBtn" class="btn btn-primary profile-save-btn" disabled>
+                      <i class="bi bi-save me-2"></i>Save Changes
+                    </button>
+                    <button type="button" id="cancelProfileChangesBtn" class="btn btn-outline-secondary" disabled>
+                      <i class="bi bi-x-circle me-2"></i>Cancel Changes
+                    </button>
+                  </div>
                 </form>
               </div>
             </div>
@@ -196,7 +204,7 @@
               </div>
             </div>
 
-            <div class="card shadow-sm border-danger">
+            <div class="card shadow-sm border-danger" id="dangerZoneCard">
               <div class="card-body">
                 <h5 class="card-title text-danger mb-3">Danger Zone</h5>
                 <p class="text-muted">Deleting your profile is irreversible. All your advertisements will also be deleted.</p>

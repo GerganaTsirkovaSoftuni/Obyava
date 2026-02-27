@@ -559,6 +559,18 @@ export async function approveAdvertisement(uuid) {
     throw new Error('Error approving advertisement: ' + error.message);
   }
 
+  // If this ad was rejected before, remove it from rejected_advertisements
+  if (data) {
+    const { error: deleteError } = await supabase
+      .from('rejected_advertisements')
+      .delete()
+      .eq('advertisement_uuid', uuid);
+
+    if (deleteError) {
+      console.error('Error removing from rejected ads:', deleteError);
+    }
+  }
+
   return data;
 }
 
@@ -569,8 +581,23 @@ export async function approveAdvertisement(uuid) {
  * @returns {Promise<Object>}
  */
 export async function rejectAdvertisement(uuid, reason) {
-  // For now, we'll just change status back to Draft
-  // In a full implementation, you might want to store the rejection reason
+  if (!reason || reason.trim().length === 0) {
+    throw new Error('Rejection reason is required');
+  }
+
+  // Get the ad details first
+  const { data: adData, error: adError } = await supabase
+    .from('advertisements')
+    .select('uuid, title, description, owner_id')
+    .eq('uuid', uuid)
+    .single();
+
+  if (adError || !adData) {
+    console.error('Error fetching advertisement:', adError);
+    throw new Error('Advertisement not found');
+  }
+
+  // Update the ad status to Draft (rejected ads are stored separately)
   const { data, error } = await supabase
     .from('advertisements')
     .update({ status: 'Draft' })
@@ -583,7 +610,43 @@ export async function rejectAdvertisement(uuid, reason) {
     throw new Error('Error rejecting advertisement: ' + error.message);
   }
 
+  // Insert into rejected_advertisements table
+  const { error: rejectError } = await supabase
+    .from('rejected_advertisements')
+    .insert({
+      advertisement_uuid: uuid,
+      title: adData.title,
+      description: adData.description,
+      owner_id: adData.owner_id,
+      rejection_reason: reason.trim()
+    });
+
+  if (rejectError) {
+    console.error('Error storing rejection reason:', rejectError);
+    // Don't throw - the ad is already rejected, but reason wasn't stored
+  }
+
   return data;
+}
+
+/**
+ * Get rejection reason for an advertisement
+ * @param {string} uuid - Advertisement UUID
+ * @returns {Promise<Object|null>} - Returns rejection record or null if not found
+ */
+export async function getRejectionReason(uuid) {
+  const { data, error } = await supabase
+    .from('rejected_advertisements')
+    .select('rejection_reason, rejection_date')
+    .eq('advertisement_uuid', uuid)
+    .single();
+
+  if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+    console.error('Error fetching rejection reason:', error);
+    return null;
+  }
+
+  return data || null;
 }
 
 /**

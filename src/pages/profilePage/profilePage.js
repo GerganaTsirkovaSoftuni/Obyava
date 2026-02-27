@@ -1,7 +1,7 @@
 import './profilePage.css';
 import template from './profilePage.html?raw';
-import { getCurrentUser, getUserProfile, updateUserProfile, updatePassword, deleteAccount } from '../../services/authService.js';
-import { getUserAds, deleteAdvertisement, archiveAdvertisement, getUserAdStats } from '../../services/adsService.js';
+import { getCurrentUser, getUserProfile, updateUserProfile, updatePassword, deleteAccount, isUserAdmin } from '../../services/authService.js';
+import { getUserAds, deleteAdvertisement, archiveAdvertisement, getUserAdStats, getRejectionReason } from '../../services/adsService.js';
 import { confirm, alert } from '../../services/modalService.js';
 import { escapeHtml } from '../../services/sanitizeService.js';
 import {
@@ -17,10 +17,29 @@ const statusTranslations = {
   'Draft': 'Draft',
   'Pending': 'Pending Approval',
   'Published': 'Published',
-  'Archived': 'Archived'
+  'Archived': 'Archived',
+  'Rejected': 'Rejected'
 };
 
 const PAGE_SIZE = 8;
+
+// Helper functions to save/restore tab state
+function saveTabState(tab, filter) {
+  sessionStorage.setItem('profileActiveTab', tab);
+  sessionStorage.setItem('profileStatusFilter', filter);
+}
+
+function getTabState() {
+  return {
+    tab: sessionStorage.getItem('profileActiveTab') || 'my-ads',
+    filter: sessionStorage.getItem('profileStatusFilter') || ''
+  };
+}
+
+function clearTabState() {
+  sessionStorage.removeItem('profileActiveTab');
+  sessionStorage.removeItem('profileStatusFilter');
+}
 
 function createUserAdCard(ad, navigate) {
   const card = document.createElement('div');
@@ -28,25 +47,34 @@ function createUserAdCard(ad, navigate) {
 
   const safeUuid = escapeHtml(ad.uuid);
   const safeTitle = escapeHtml(ad.title);
-  const safeImageUrl = escapeHtml(ad.image_url || '/placeholder.png');
+  const safeImageUrl = ad.image_url ? escapeHtml(ad.image_url) : null;
+  
+  const imageHtml = safeImageUrl 
+    ? `<img src="${safeImageUrl}" class="user-ad-image" alt="${safeTitle}">`
+    : `<div class="user-ad-image user-ad-image-placeholder">
+         <i class="bi bi-image"></i>
+       </div>`;
   
   card.innerHTML = `
     <div class="card-body">
       <div class="row align-items-center">
         <div class="col-auto">
-          <img src="${safeImageUrl}" class="user-ad-image" alt="${safeTitle}">
+          ${imageHtml}
         </div>
         <div class="col">
           <h5 class="user-ad-title">${safeTitle}</h5>
           <p class="user-ad-price mb-2">${ad.price ? ad.price + ' EUR' : 'Negotiable'}</p>
-          <span class="status-badge status-${ad.status}">${statusTranslations[ad.status]}</span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="status-badge status-${ad.status}">${statusTranslations[ad.status]}</span>
+            ${ad.status === 'Rejected' ? `<span class="rejection-indicator" title="Click to see reason"><i class="bi bi-exclamation-circle-fill"></i> Rejected</span>` : ''}
+          </div>
         </div>
         <div class="col-auto">
           <div class="user-ad-actions">
             <button class="btn btn-sm btn-outline-primary view-btn" data-uuid="${safeUuid}">
               <i class="bi bi-eye"></i>
             </button>
-            ${ad.status !== 'Archived' ? `
+            ${ad.status !== 'Archived' && ad.status !== 'Rejected' ? `
               <button class="btn btn-sm btn-outline-primary edit-btn" data-uuid="${safeUuid}">
                 <i class="bi bi-pencil"></i>
               </button>
@@ -56,7 +84,7 @@ function createUserAdCard(ad, navigate) {
                 <i class="bi bi-archive"></i>
               </button>
             ` : ''}
-            ${ad.status !== 'Published' && ad.status !== 'Archived' ? `
+            ${ad.status !== 'Published' && ad.status !== 'Archived' && ad.status !== 'Rejected' ? `
               <button class="btn btn-sm btn-outline-danger delete-btn" data-uuid="${safeUuid}">
                 <i class="bi bi-trash"></i>
               </button>
@@ -67,6 +95,25 @@ function createUserAdCard(ad, navigate) {
     </div>
   `;
   
+  // Handle rejection reason display
+  if (ad.status === 'Rejected') {
+    const rejectionIndicator = card.querySelector('.rejection-indicator');
+    rejectionIndicator.addEventListener('click', async () => {
+      try {
+        const rejection = await getRejectionReason(ad.uuid);
+        if (rejection) {
+          await alert(
+            `Rejection Reason:\n\n${rejection.rejection_reason}`,
+            'Advertisement Rejected',
+            'error'
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching rejection reason:', error);
+      }
+    });
+  }
+  
   // Add event listeners
   card.querySelector('.view-btn').addEventListener('click', () => {
     navigate(`/advertisement/${ad.uuid}`);
@@ -75,6 +122,11 @@ function createUserAdCard(ad, navigate) {
   const editBtn = card.querySelector('.edit-btn');
   if (editBtn) {
     editBtn.addEventListener('click', () => {
+      // Save current tab and filter state before navigating to edit
+      const activeTab = document.querySelector('#profileTabs .nav-link.active')?.getAttribute('data-bs-target')?.substring(1) || 'my-ads';
+      const activeFilter = document.querySelector('input[name="statusFilter"]:checked')?.value || '';
+      saveTabState(activeTab, activeFilter);
+      
       navigate(`/edit-advertisement/${ad.uuid}`);
     });
   }
@@ -85,6 +137,11 @@ function createUserAdCard(ad, navigate) {
       const confirmed = await confirm('Are you sure you want to archive this advertisement? Archived ads won\'t be visible to other users.', 'Archive Advertisement');
       if (confirmed) {
         try {
+          // Get current active tab and filter to restore after reload
+          const activeTab = document.querySelector('#profileTabs .nav-link.active')?.getAttribute('data-bs-target')?.substring(1) || 'my-ads';
+          const activeFilter = document.querySelector('input[name="statusFilter"]:checked')?.value || '';
+          saveTabState(activeTab, activeFilter);
+          
           await archiveAdvertisement(ad.uuid);
           card.remove();
           await alert('Advertisement archived successfully', 'Success', 'success');
@@ -104,6 +161,11 @@ function createUserAdCard(ad, navigate) {
       const confirmed = await confirm('Are you sure you want to delete this advertisement? This action cannot be undone.', 'Delete Advertisement');
       if (confirmed) {
         try {
+          // Get current active tab and filter to restore after reload
+          const activeTab = document.querySelector('#profileTabs .nav-link.active')?.getAttribute('data-bs-target')?.substring(1) || 'my-ads';
+          const activeFilter = document.querySelector('input[name="statusFilter"]:checked')?.value || '';
+          saveTabState(activeTab, activeFilter);
+          
           await deleteAdvertisement(ad.uuid);
           card.remove();
           await alert('Advertisement deleted successfully', 'Success', 'success');
@@ -161,6 +223,17 @@ export function renderProfilePage({ navigate }) {
   wrapper.innerHTML = template;
   const section = wrapper.firstElementChild;
 
+  section.classList.add('profile-role-pending');
+  const roleLoader = document.createElement('div');
+  roleLoader.className = 'profile-role-loader';
+  roleLoader.innerHTML = `
+    <div class="text-center" role="status" aria-live="polite" aria-label="Loading profile">
+      <div class="spinner"></div>
+      <p class="preloader-text mt-3 mb-0">Loading profile...</p>
+    </div>
+  `;
+  section.appendChild(roleLoader);
+
   // Get elements
   const userName = section.querySelector('#userName');
   const userEmail = section.querySelector('#userEmail');
@@ -176,9 +249,17 @@ export function renderProfilePage({ navigate }) {
   const profileAdsLoadMoreBtn = section.querySelector('#profileAdsLoadMoreBtn');
   const createNewAdBtn = section.querySelector('#createNewAdBtn');
   const statusFilters = section.querySelectorAll('input[name="statusFilter"]');
+  const profileStatsRow = section.querySelector('#profileStatsRow');
+  const profileTabs = section.querySelector('#profileTabs');
+  const myAdsTabBtn = section.querySelector('#my-ads-tab');
+  const myAdsTabItem = myAdsTabBtn?.closest('.nav-item');
+  const myAdsPane = section.querySelector('#my-ads');
+  const editProfileBtn = section.querySelector('#editProfileBtn');
+  const dangerZoneCard = section.querySelector('#dangerZoneCard');
   
   const updateProfileForm = section.querySelector('#updateProfileForm');
   const updateProfileSubmitBtn = section.querySelector('#updateProfileSubmitBtn');
+  const cancelProfileChangesBtn = section.querySelector('#cancelProfileChangesBtn');
   const changePasswordForm = section.querySelector('#changePasswordForm');
   const deleteAccountBtn = section.querySelector('#deleteAccountBtn');
 
@@ -192,6 +273,40 @@ export function renderProfilePage({ navigate }) {
   createNewAdBtn.addEventListener('click', () => {
     navigate('/create-advertisement');
   });
+
+  async function applyAdminProfileLayout() {
+    try {
+      const { user } = await getCurrentUser();
+      if (!user) {
+        return false;
+      }
+
+      const { isAdmin } = await isUserAdmin(user.id);
+      if (!isAdmin) {
+        return false;
+      }
+
+      profileStatsRow?.classList.add('d-none');
+      myAdsTabItem?.classList.add('d-none');
+      myAdsPane?.classList.add('d-none');
+      createNewAdBtn?.classList.add('d-none');
+      profileTabs?.classList.add('d-none');
+      editProfileBtn?.classList.add('d-none');
+      deleteAccountBtn?.classList.add('d-none');
+      dangerZoneCard?.classList.add('d-none');
+
+      const settingsTabBtn = section.querySelector('#settings-tab');
+      if (settingsTabBtn) {
+        const bsTab = new window.bootstrap.Tab(settingsTabBtn);
+        bsTab.show();
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error applying admin profile layout:', error);
+      return false;
+    }
+  }
 
   // Display user ads function
   async function displayUserAds(statusFilter = '', reset = true) {
@@ -278,8 +393,45 @@ export function renderProfilePage({ navigate }) {
     }
   });
 
-  // Initial load
-  displayUserAds(activeStatusFilter, true);
+  (async () => {
+    try {
+      const isAdminProfile = await applyAdminProfileLayout();
+
+      if (!isAdminProfile) {
+        // Restore tab state if coming back from an operation
+        const savedState = getTabState();
+
+        // Restore active tab
+        if (savedState.tab && savedState.tab !== 'my-ads') {
+          const tabToActivate = section.querySelector(`#${savedState.tab}-tab`);
+
+          if (tabToActivate) {
+            // Use Bootstrap's Tab API to properly activate the tab
+            const bsTab = new window.bootstrap.Tab(tabToActivate);
+            bsTab.show();
+          }
+        }
+
+        // Restore active filter
+        if (savedState.filter !== activeStatusFilter) {
+          activeStatusFilter = savedState.filter;
+          const filterToActivate = section.querySelector(`input[name="statusFilter"][value="${savedState.filter}"]`);
+          if (filterToActivate) {
+            filterToActivate.checked = true;
+          }
+        }
+
+        // Clear the saved state after restoring
+        clearTabState();
+
+        // Initial load
+        displayUserAds(activeStatusFilter, true);
+      }
+    } finally {
+      section.classList.remove('profile-role-pending');
+      roleLoader.remove();
+    }
+  })();
 
   // Get form inputs for validation
   const updateFullNameInput = updateProfileForm.querySelector('#updateFullName');
@@ -298,6 +450,7 @@ export function renderProfilePage({ navigate }) {
   function updateProfileSaveButtonState() {
     if (!originalProfileValues) {
       updateProfileSubmitBtn.disabled = true;
+      cancelProfileChangesBtn.disabled = true;
       return;
     }
 
@@ -307,6 +460,18 @@ export function renderProfilePage({ navigate }) {
       currentValues.phone !== originalProfileValues.phone;
 
     updateProfileSubmitBtn.disabled = !hasChanges;
+    cancelProfileChangesBtn.disabled = !hasChanges;
+  }
+
+  function resetProfileFormChanges() {
+    if (!originalProfileValues) {
+      return;
+    }
+
+    updateFullNameInput.value = originalProfileValues.fullName;
+    updatePhoneInput.value = originalProfileValues.phone;
+    clearFormErrors(updateProfileForm);
+    updateProfileSaveButtonState();
   }
 
   async function syncProfileFormFromServer() {
@@ -328,6 +493,7 @@ export function renderProfilePage({ navigate }) {
   }
 
   updateProfileSubmitBtn.disabled = true;
+  cancelProfileChangesBtn.disabled = true;
   syncProfileFormFromServer().catch((error) => {
     console.error('Error loading profile:', error);
   });
@@ -337,6 +503,7 @@ export function renderProfilePage({ navigate }) {
   addRealTimeValidation(updatePhoneInput, validatePhoneField);
   updateFullNameInput.addEventListener('input', updateProfileSaveButtonState);
   updatePhoneInput.addEventListener('input', updateProfileSaveButtonState);
+  cancelProfileChangesBtn.addEventListener('click', resetProfileFormChanges);
 
   // Add real-time validation for password form
   addRealTimeValidation(currentPasswordInput, (input) => validateRequired(input, 'Current password'));

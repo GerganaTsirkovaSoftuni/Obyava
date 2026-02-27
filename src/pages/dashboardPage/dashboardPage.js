@@ -2,8 +2,10 @@ import './dashboardPage.css';
 import template from './dashboardPage.html?raw';
 import { getPendingAds, getPendingAdsCount, getAllAds, approveAdvertisement, rejectAdvertisement, archiveAdvertisement, deleteAdvertisement } from '../../services/adsService.js';
 import { getAllUsers, updateUserRole, deleteUser, getPlatformStats } from '../../services/userService.js';
-import { confirm, alert } from '../../services/modalService.js';
+import { getCurrentUser } from '../../services/authService.js';
+import { confirm, alert, promptText } from '../../services/modalService.js';
 import { escapeHtml } from '../../services/sanitizeService.js';
+import { refreshAdminNotificationBadge } from '../../components/header/header.js';
 
 const PAGE_SIZE = 8;
 
@@ -11,7 +13,8 @@ const statusTranslations = {
   'Draft': 'Draft',
   'Pending': 'Pending Approval',
   'Published': 'Published',
-  'Archived': 'Archived'
+  'Archived': 'Archived',
+  'Rejected': 'Rejected'
 };
 
 function createAdminAdRow(ad, onAction, navigate) {
@@ -92,9 +95,14 @@ function createAdminAdRow(ad, onAction, navigate) {
   return row;
 }
 
-function createUserRow(user, onAction) {
+function createUserRow(user, onAction, currentAdminId) {
   const row = document.createElement('div');
   row.className = 'user-row';
+
+  const isCurrentAdmin = user.id === currentAdminId;
+  const showToggleRole = !isCurrentAdmin;
+  const showViewAds = user.role !== 'admin';
+  const showDelete = user.role !== 'admin' && !isCurrentAdmin;
   
   const initials = user.full_name.split(' ').map(n => n[0]).join('').toUpperCase();
   const safeFullName = escapeHtml(user.full_name);
@@ -115,10 +123,17 @@ function createUserRow(user, onAction) {
       </div>
       <div class="col-auto">
         <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-primary toggle-role-btn" data-id="${user.id}">
-            <i class="bi bi-person-gear"></i> ${user.role === 'admin' ? 'Set as User' : 'Set as Admin'}
-          </button>
-          ${user.role !== 'admin' ? `
+          ${showToggleRole ? `
+            <button class="btn btn-sm btn-outline-primary toggle-role-btn" data-id="${user.id}">
+              <i class="bi bi-person-gear"></i> ${user.role === 'admin' ? 'Set as User' : 'Set as Admin'}
+            </button>
+          ` : ''}
+          ${showViewAds ? `
+            <button class="btn btn-sm btn-outline-secondary view-user-ads-btn" data-id="${user.id}">
+              <i class="bi bi-grid"></i> View Ads
+            </button>
+          ` : ''}
+          ${showDelete ? `
             <button class="btn btn-sm btn-danger delete-user-btn" data-id="${user.id}">
               <i class="bi bi-trash"></i>
             </button>
@@ -129,7 +144,14 @@ function createUserRow(user, onAction) {
   `;
   
   const toggleRoleBtn = row.querySelector('.toggle-role-btn');
-  toggleRoleBtn.addEventListener('click', () => onAction('toggle-role', user.id));
+  if (toggleRoleBtn) {
+    toggleRoleBtn.addEventListener('click', () => onAction('toggle-role', user.id));
+  }
+
+  const viewUserAdsBtn = row.querySelector('.view-user-ads-btn');
+  if (viewUserAdsBtn) {
+    viewUserAdsBtn.addEventListener('click', () => onAction('view-user-ads', user.id));
+  }
   
   const deleteUserBtn = row.querySelector('.delete-user-btn');
   if (deleteUserBtn) {
@@ -153,10 +175,11 @@ async function loadPendingAds(offset = 0, limit = PAGE_SIZE + 1) {
 }
 
 async function loadAllAds(statusFilter = '', offset = 0, limit = PAGE_SIZE + 1) {
-  const filters = statusFilter ? { status: statusFilter, offset, limit } : { offset, limit };
-  const ads = await getAllAds(filters);
+  // IMPORTANT: Always fetch ALL ads without status filter to enable global sorting by status priority
+  // Only use statusFilter for display filtering after sorting
+  const allAds = await getAllAds({ limit: 10000 }); // Fetch large batch for proper sorting
   
-  return ads.map(ad => ({
+  const formattedAds = allAds.map(ad => ({
     uuid: ad.uuid,
     title: ad.title,
     price: ad.price,
@@ -165,6 +188,32 @@ async function loadAllAds(statusFilter = '', offset = 0, limit = PAGE_SIZE + 1) 
     user_name: ad.users?.full_name || 'Unknown',
     image_url: ad.advertisement_images?.[0]?.file_path || null
   }));
+
+  // Sort: first by status priority, then by creation date (most recent first)
+  const statusOrder = { 'Pending': 0, 'Published': 1, 'Rejected': 2, 'Draft': 3, 'Archived': 4 };
+  formattedAds.sort((a, b) => {
+    const orderA = statusOrder[a.status] ?? 999;
+    const orderB = statusOrder[b.status] ?? 999;
+    
+    // First sort by status
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+    
+    // Then sort by creation date (most recent first)
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+
+  // Apply status filter for display (if any)
+  let filteredAds = formattedAds;
+  if (statusFilter) {
+    filteredAds = formattedAds.filter(ad => ad.status === statusFilter);
+  }
+
+  // Apply pagination to the sorted and filtered results
+  const paginatedAds = filteredAds.slice(offset, offset + limit);
+
+  return paginatedAds;
 }
 
 async function loadUsers() {
@@ -205,6 +254,7 @@ export function renderDashboardPage({ navigate }) {
   const loadingUsers = section.querySelector('#loadingUsers');
   
   const statusFilterAll = section.querySelector('#statusFilterAll');
+  let currentAdminId = null;
 
   let pendingOffset = 0;
   let pendingHasMore = false;
@@ -226,15 +276,21 @@ export function renderDashboardPage({ navigate }) {
           if (approveConfirmed) {
             await approveAdvertisement(adId);
             await alert('Advertisement approved', 'Success', 'success');
+            refreshAdminNotificationBadge();
             loadPendingAdsData(true);
             loadAllAdsData(true);
           }
           break;
         case 'reject':
-          const reason = prompt('Reason for rejection:');
+          const reason = await promptText(
+            'Please provide a reason for rejecting this advertisement.',
+            'Reject Advertisement',
+            { placeholder: 'Enter rejection reason...', maxLength: 500 }
+          );
           if (reason) {
             await rejectAdvertisement(adId, reason);
             await alert('Advertisement rejected', 'Success', 'success');
+            refreshAdminNotificationBadge();
             loadPendingAdsData(true);
             loadAllAdsData(true);
           }
@@ -266,22 +322,37 @@ export function renderDashboardPage({ navigate }) {
   // User action handler
   async function handleUserAction(action, userId) {
     try {
-      console.log(`Admin action: ${action} on user ${userId}`);
-      
       switch (action) {
         case 'toggle-role':
+          if (userId === currentAdminId) {
+            await alert('You cannot change your own role.', 'Action not allowed', 'warning');
+            return;
+          }
+
           const roleConfirmed = await confirm('Change this user role?', 'Change User Role');
           if (roleConfirmed) {
             // Find user to get current role
             const users = await loadUsers();
             const user = users.find(u => u.id === userId);
+            if (!user) {
+              await alert('User not found', 'Error', 'error');
+              return;
+            }
             const newRole = user.role === 'admin' ? 'user' : 'admin';
             await updateUserRole(userId, newRole);
             await alert('Role updated', 'Success', 'success');
             loadUsersData();
           }
           break;
+        case 'view-user-ads':
+          navigate(`/user/${userId}/ads`);
+          break;
         case 'delete-user':
+          if (userId === currentAdminId) {
+            await alert('You cannot delete your own account from the admin panel.', 'Action not allowed', 'warning');
+            return;
+          }
+
           const deleteUserConfirmed = await confirm('WARNING: Deleting this user will also remove all their advertisements. Are you sure?', 'Delete User');
           if (deleteUserConfirmed) {
             await deleteUser(userId);
@@ -293,7 +364,7 @@ export function renderDashboardPage({ navigate }) {
       }
     } catch (error) {
       console.error('Error handling user action:', error);
-      await alert('Error executing action', 'Error', 'error');
+      await alert(error.message || 'Error executing action', 'Error', 'error');
     }
   }
 
@@ -414,7 +485,7 @@ export function renderDashboardPage({ navigate }) {
       loadingUsers.classList.add('d-none');
       
       users.forEach(user => {
-        const row = createUserRow(user, handleUserAction);
+        const row = createUserRow(user, handleUserAction, currentAdminId);
         usersList.appendChild(row);
       });
       
@@ -469,9 +540,19 @@ export function renderDashboardPage({ navigate }) {
   });
 
   // Initial load
-  loadPendingAdsData(true);
-  loadAllAdsData(true);
-  loadUsersData();
+  (async () => {
+    try {
+      const { user } = await getCurrentUser();
+      currentAdminId = user?.id || null;
+    } catch (error) {
+      console.error('Error loading current admin:', error);
+      currentAdminId = null;
+    }
+
+    loadPendingAdsData(true);
+    loadAllAdsData(true);
+    loadUsersData();
+  })();
 
   return section;
 }

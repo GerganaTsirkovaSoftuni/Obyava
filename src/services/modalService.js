@@ -120,6 +120,113 @@ export function confirm(message, title = 'Confirm', options = {}) {
 }
 
 /**
+ * Show text input dialog
+ * @param {string} message - Message to display
+ * @param {string} title - Dialog title (default: "Enter Text")
+ * @param {Object} options - { placeholder: string, maxLength: number }
+ * @returns {Promise<string|null>} - Resolves to the entered text or null if cancelled
+ */
+export function promptText(message, title = 'Enter Text', options = {}) {
+  return new Promise((resolve) => {
+    initModal();
+    
+    const titleElement = modalContainer.querySelector('.modal-title');
+    const bodyElement = modalContainer.querySelector('.modal-body');
+    const cancelBtn = modalContainer.querySelector('.modal-btn-cancel');
+    const confirmBtn = modalContainer.querySelector('.modal-btn-confirm');
+
+    titleElement.textContent = title;
+    
+    // Create input area
+    const inputContainer = document.createElement('div');
+    inputContainer.innerHTML = `
+      <p style="margin-bottom: 1rem; color: #6c757d; font-size: 0.95rem;">${message}</p>
+      <textarea 
+        id="prompt-input"
+        class="form-control"
+        style="min-height: 100px; resize: vertical;"
+        placeholder="${options.placeholder || ''}"
+        ${options.maxLength ? `maxlength="${options.maxLength}"` : ''}
+      ></textarea>
+      <small style="color: #999; margin-top: 0.5rem; display: block;">
+        <span id="char-count">0</span>/<span id="char-max">${options.maxLength || 'unlimited'}</span> characters
+      </small>
+    `;
+    bodyElement.innerHTML = '';
+    bodyElement.appendChild(inputContainer);
+    
+    const inputElement = bodyElement.querySelector('#prompt-input');
+    const charCount = bodyElement.querySelector('#char-count');
+    const charMax = options.maxLength ? options.maxLength : Infinity;
+    
+    // Update char count
+    inputElement.addEventListener('input', () => {
+      charCount.textContent = inputElement.value.length;
+    });
+    
+    // Focus on input
+    setTimeout(() => inputElement.focus(), 100);
+    
+    // Show cancel button
+    cancelBtn.style.display = 'inline-flex';
+    confirmBtn.textContent = 'Submit';
+    confirmBtn.className = 'modal-btn modal-btn-confirm';
+
+    // Remove old listeners
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+    // Handle cancel
+    newCancelBtn.addEventListener('click', () => {
+      hideModal();
+      resolve(null);
+    });
+
+    // Handle confirm
+    const handleSubmit = () => {
+      const value = inputElement.value.trim();
+      if (!value && !options.allowEmpty) {
+        inputElement.focus();
+        inputElement.style.borderColor = '#dc3545';
+        return;
+      }
+      hideModal();
+      resolve(value);
+    };
+    
+    newConfirmBtn.addEventListener('click', handleSubmit);
+    inputElement.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.ctrlKey) {
+        handleSubmit();
+      }
+    });
+
+    // Handle backdrop click
+    const backdrop = modalContainer.querySelector('.modal-backdrop');
+    const handleBackdropClick = () => {
+      hideModal();
+      resolve(null);
+      backdrop.removeEventListener('click', handleBackdropClick);
+    };
+    backdrop.addEventListener('click', handleBackdropClick);
+
+    // Handle escape key
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        hideModal();
+        resolve(null);
+        document.removeEventListener('keydown', handleEscape);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+
+    showModal();
+  });
+}
+
+/**
  * Show alert dialog
  * @param {string} message - Message to display
  * @param {string} title - Dialog title (default: "Notice")

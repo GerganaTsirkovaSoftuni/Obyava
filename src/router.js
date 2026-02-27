@@ -7,6 +7,7 @@ import { renderAdvertisementPage } from './pages/advertisementPage/advertisement
 import { renderCreateAdPage } from './pages/createAdPage/createAdPage.js';
 import { renderProfilePage } from './pages/profilePage/profilePage.js';
 import { renderUserAdsPage } from './pages/userAdsPage/userAdsPage.js';
+import { renderNotFoundPage } from './pages/notFoundPage/notFoundPage.js';
 
 const router = new Navigo('/', { hash: false });
 const appName = 'Obyava';
@@ -35,32 +36,6 @@ const routeMap = [
   { path: '/edit-advertisement/:id', view: renderCreateAdPage, title: 'Edit Advertisement' },
 ];
 
-function renderPlaceholder(path) {
-  const section = document.createElement('section');
-  section.className = 'container py-5 text-center';
-  section.innerHTML = `
-    <div class="py-5">
-      <i class="bi bi-exclamation-triangle display-1 text-warning"></i>
-      <h1 class="mt-4">Page Not Found</h1>
-      <p class="text-muted">Route <code>${path}</code> does not exist.</p>
-      <a href="/" class="btn btn-primary mt-3" data-link>
-        <i class="bi bi-house-door me-2"></i>Go to Home
-      </a>
-    </div>
-  `;
-  
-  // Setup link navigation
-  const link = section.querySelector('[data-link]');
-  if (link) {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      navigate('/');
-    });
-  }
-  
-  return section;
-}
-
 export function navigate(path) {
   router.navigate(path);
 }
@@ -80,31 +55,20 @@ function resolveRouteTitle(route, params) {
 export function setupRoutes(mainElement) {
   routeMap.forEach((route) => {
     router.on(route.path, (match) => {
-      showRoutePreloader();
       const params = match?.data ?? {};
       setPageTitle(resolveRouteTitle(route, params));
-      const content = route.view
-        ? route.view({ navigate, params })
-        : renderPlaceholder(route.path);
+      const content = route.view({ navigate, params });
       mainElement.replaceChildren(content);
       
       // Scroll to top on navigation
       window.scrollTo(0, 0);
-
-      requestAnimationFrame(() => {
-        hideRoutePreloader();
-      });
     });
   });
 
   router.notFound(() => {
-    showRoutePreloader();
     setPageTitle('Not Found');
-    mainElement.replaceChildren(renderPlaceholder('/404'));
+    mainElement.replaceChildren(renderNotFoundPage({ navigate }));
     window.scrollTo(0, 0);
-    requestAnimationFrame(() => {
-      hideRoutePreloader();
-    });
   });
 
   router.resolve();
