@@ -517,7 +517,7 @@ export function renderDashboardPage({ navigate }) {
     } finally {
       isLoadingPendingMore = false;
       pendingLoadMoreBtn.disabled = false;
-      pendingLoadMoreBtn.textContent = 'Load 8 More';
+      pendingLoadMoreBtn.textContent = 'Load more...';
     }
   });
 
@@ -535,7 +535,7 @@ export function renderDashboardPage({ navigate }) {
     } finally {
       isLoadingAllAdsMore = false;
       allAdsLoadMoreBtn.disabled = false;
-      allAdsLoadMoreBtn.textContent = 'Load 8 More';
+      allAdsLoadMoreBtn.textContent = 'Load more...';
     }
   });
 

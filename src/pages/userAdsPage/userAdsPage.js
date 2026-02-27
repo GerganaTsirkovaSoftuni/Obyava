@@ -145,7 +145,7 @@ export function renderUserAdsPage({ navigate, params }) {
     } finally {
       isLoadingMore = false;
       loadMoreBtn.disabled = false;
-      loadMoreBtn.textContent = 'Load 8 More';
+      loadMoreBtn.textContent = 'Load more...';
     }
   });
 

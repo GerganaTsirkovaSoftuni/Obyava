@@ -223,17 +223,6 @@ export function renderProfilePage({ navigate }) {
   wrapper.innerHTML = template;
   const section = wrapper.firstElementChild;
 
-  section.classList.add('profile-role-pending');
-  const roleLoader = document.createElement('div');
-  roleLoader.className = 'profile-role-loader';
-  roleLoader.innerHTML = `
-    <div class="text-center" role="status" aria-live="polite" aria-label="Loading profile">
-      <div class="spinner"></div>
-      <p class="preloader-text mt-3 mb-0">Loading profile...</p>
-    </div>
-  `;
-  section.appendChild(roleLoader);
-
   // Get elements
   const userName = section.querySelector('#userName');
   const userEmail = section.querySelector('#userEmail');
@@ -261,6 +250,7 @@ export function renderProfilePage({ navigate }) {
   const updateProfileSubmitBtn = section.querySelector('#updateProfileSubmitBtn');
   const cancelProfileChangesBtn = section.querySelector('#cancelProfileChangesBtn');
   const changePasswordForm = section.querySelector('#changePasswordForm');
+  const changePasswordSubmitBtn = section.querySelector('#changePasswordSubmitBtn');
   const deleteAccountBtn = section.querySelector('#deleteAccountBtn');
 
   let activeStatusFilter = '';
@@ -389,47 +379,42 @@ export function renderProfilePage({ navigate }) {
     } finally {
       isLoadingMoreAds = false;
       profileAdsLoadMoreBtn.disabled = false;
-      profileAdsLoadMoreBtn.textContent = 'Load 8 More';
+      profileAdsLoadMoreBtn.textContent = 'Load more...';
     }
   });
 
   (async () => {
-    try {
-      const isAdminProfile = await applyAdminProfileLayout();
+    const isAdminProfile = await applyAdminProfileLayout();
 
-      if (!isAdminProfile) {
-        // Restore tab state if coming back from an operation
-        const savedState = getTabState();
+    if (!isAdminProfile) {
+      // Restore tab state if coming back from an operation
+      const savedState = getTabState();
 
-        // Restore active tab
-        if (savedState.tab && savedState.tab !== 'my-ads') {
-          const tabToActivate = section.querySelector(`#${savedState.tab}-tab`);
+      // Restore active tab
+      if (savedState.tab && savedState.tab !== 'my-ads') {
+        const tabToActivate = section.querySelector(`#${savedState.tab}-tab`);
 
-          if (tabToActivate) {
-            // Use Bootstrap's Tab API to properly activate the tab
-            const bsTab = new window.bootstrap.Tab(tabToActivate);
-            bsTab.show();
-          }
+        if (tabToActivate) {
+          // Use Bootstrap's Tab API to properly activate the tab
+          const bsTab = new window.bootstrap.Tab(tabToActivate);
+          bsTab.show();
         }
-
-        // Restore active filter
-        if (savedState.filter !== activeStatusFilter) {
-          activeStatusFilter = savedState.filter;
-          const filterToActivate = section.querySelector(`input[name="statusFilter"][value="${savedState.filter}"]`);
-          if (filterToActivate) {
-            filterToActivate.checked = true;
-          }
-        }
-
-        // Clear the saved state after restoring
-        clearTabState();
-
-        // Initial load
-        displayUserAds(activeStatusFilter, true);
       }
-    } finally {
-      section.classList.remove('profile-role-pending');
-      roleLoader.remove();
+
+      // Restore active filter
+      if (savedState.filter !== activeStatusFilter) {
+        activeStatusFilter = savedState.filter;
+        const filterToActivate = section.querySelector(`input[name="statusFilter"][value="${savedState.filter}"]`);
+        if (filterToActivate) {
+          filterToActivate.checked = true;
+        }
+      }
+
+      // Clear the saved state after restoring
+      clearTabState();
+
+      // Initial load
+      displayUserAds(activeStatusFilter, true);
     }
   })();
 
@@ -463,15 +448,32 @@ export function renderProfilePage({ navigate }) {
     cancelProfileChangesBtn.disabled = !hasChanges;
   }
 
-  function resetProfileFormChanges() {
+  function clearProfileFormFields() {
     if (!originalProfileValues) {
       return;
     }
 
-    updateFullNameInput.value = originalProfileValues.fullName;
-    updatePhoneInput.value = originalProfileValues.phone;
+    const currentValues = getNormalizedProfileValues();
+
+    if (currentValues.fullName !== originalProfileValues.fullName) {
+      updateFullNameInput.value = '';
+    }
+
+    if (currentValues.phone !== originalProfileValues.phone) {
+      updatePhoneInput.value = '';
+    }
+
     clearFormErrors(updateProfileForm);
     updateProfileSaveButtonState();
+  }
+
+  function updatePasswordSaveButtonState() {
+    const hasChanges =
+      currentPasswordInput.value.trim() !== '' ||
+      newPasswordInput.value.trim() !== '' ||
+      confirmNewPasswordInput.value.trim() !== '';
+
+    changePasswordSubmitBtn.disabled = !hasChanges;
   }
 
   async function syncProfileFormFromServer() {
@@ -503,12 +505,24 @@ export function renderProfilePage({ navigate }) {
   addRealTimeValidation(updatePhoneInput, validatePhoneField);
   updateFullNameInput.addEventListener('input', updateProfileSaveButtonState);
   updatePhoneInput.addEventListener('input', updateProfileSaveButtonState);
-  cancelProfileChangesBtn.addEventListener('click', resetProfileFormChanges);
+  cancelProfileChangesBtn.addEventListener('mousedown', (event) => {
+    event.preventDefault();
+  });
+
+  cancelProfileChangesBtn.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    clearProfileFormFields();
+  });
 
   // Add real-time validation for password form
   addRealTimeValidation(currentPasswordInput, (input) => validateRequired(input, 'Current password'));
   addRealTimeValidation(newPasswordInput, validatePassword);
   addRealTimeValidation(confirmNewPasswordInput, (input) => validatePasswordConfirm(input, newPasswordInput.value));
+  currentPasswordInput.addEventListener('input', updatePasswordSaveButtonState);
+  newPasswordInput.addEventListener('input', updatePasswordSaveButtonState);
+  confirmNewPasswordInput.addEventListener('input', updatePasswordSaveButtonState);
+  changePasswordSubmitBtn.disabled = true;
 
   // Update profile form
   updateProfileForm.addEventListener('submit', async (e) => {
@@ -556,6 +570,11 @@ export function renderProfilePage({ navigate }) {
   // Change password form
   changePasswordForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    if (changePasswordSubmitBtn.disabled) {
+      return;
+    }
+
     clearFormErrors(changePasswordForm);
 
     const formData = new FormData(changePasswordForm);
@@ -577,6 +596,7 @@ export function renderProfilePage({ navigate }) {
       await alert('Password changed successfully!', 'Success', 'success');
       changePasswordForm.reset();
       clearFormErrors(changePasswordForm);
+      updatePasswordSaveButtonState();
     } catch (error) {
       console.error('Error changing password:', error);
       await alert('Error changing password: ' + error.message, 'Error', 'error');

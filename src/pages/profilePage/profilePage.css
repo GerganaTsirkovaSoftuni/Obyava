@@ -4,19 +4,6 @@
   position: relative;
 }
 
-.profile-page.profile-role-pending > *:not(.profile-role-loader) {
-  visibility: hidden;
-}
-
-.profile-role-loader {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-}
-
 .profile-avatar {
   width: 80px;
   height: 80px;
@@ -229,6 +216,15 @@
 .rejection-indicator i {
   color: #ffffff;
   font-size: 0.9rem;
+}
+
+@media (min-width: 992px) {
+  #updateProfileForm,
+  #changePasswordForm {
+    max-width: 800px;
+    margin-left: 0;
+    margin-right: auto;
+  }
 }
 
 @media (max-width: 768px) {

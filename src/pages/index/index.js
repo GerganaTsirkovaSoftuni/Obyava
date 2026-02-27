@@ -1,7 +1,7 @@
 import './index.css';
 import template from './index.html?raw';
 import { getCategories, getPublishedAds } from '../../services/adsService.js';
-import { getSession } from '../../services/authService.js';
+import { getCurrentUser, isUserAdmin } from '../../services/authService.js';
 import { escapeHtml } from '../../services/sanitizeService.js';
 
 const PAGE_SIZE = 8;
@@ -122,13 +122,27 @@ export function renderIndexPage({ navigate }) {
   let currentCategory = '';
   let isLoadingMore = false;
 
-  // Check if user is logged in
-  getSession().then(({ session }) => {
-    if (session) {
+  // Show create button only for authenticated regular users
+  (async () => {
+    try {
+      const { user } = await getCurrentUser();
+      if (!user) {
+        return;
+      }
+
+      const { isAdmin } = await isUserAdmin(user.id);
+      if (isAdmin) {
+        createAdBtn.classList.add('d-none');
+        return;
+      }
+
       createAdBtn.classList.remove('d-none');
       createAdBtn.addEventListener('click', () => navigate('/create-advertisement'));
+    } catch (error) {
+      console.error('Error checking create-ad visibility:', error);
+      createAdBtn.classList.add('d-none');
     }
-  });
+  })();
 
   populateCategories(section);
 
@@ -213,7 +227,7 @@ export function renderIndexPage({ navigate }) {
     } finally {
       isLoadingMore = false;
       loadMoreBtn.disabled = false;
-      loadMoreBtn.textContent = 'Load 8 More';
+      loadMoreBtn.textContent = 'Load more...';
     }
   });
 

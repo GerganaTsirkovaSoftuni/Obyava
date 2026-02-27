@@ -28,6 +28,8 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
+        text-align: center;
         gap: 14px;
       }
 
@@ -41,29 +43,9 @@
         animation: preloader-spin 0.9s linear infinite;
       }
 
-      #preloader .preloader-text {
-        margin: 0;
-        font-size: 0.9rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: #5b5f9f;
-        animation: preloader-pulse 1.4s ease-in-out infinite;
-      }
-
       @keyframes preloader-spin {
         to {
           transform: rotate(360deg);
-        }
-      }
-
-      @keyframes preloader-pulse {
-        0%,
-        100% {
-          opacity: 0.6;
-        }
-        50% {
-          opacity: 1;
         }
       }
     </style>
@@ -79,7 +61,6 @@
     <div id="preloader" class="preloader">
       <div class="preloader-content">
         <div class="spinner"></div>
-        <p class="preloader-text">Loading...</p>
       </div>
     </div>
     <div id="app"></div>

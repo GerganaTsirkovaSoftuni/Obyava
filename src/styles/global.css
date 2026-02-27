@@ -87,6 +87,8 @@ main > section:first-child,
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: 14px;
 }
 
@@ -115,6 +117,8 @@ main > section:first-child,
   font-weight: 700;
   color: #5b5f9f;
   margin: 0;
+  text-align: center;
+  width: 100%;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   animation: pulse-text 1.4s ease-in-out infinite;
@@ -536,6 +540,7 @@ textarea.form-control.is-valid:focus,
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
   gap: 0.6rem;
   position: relative;
   border: 2px solid rgba(102, 126, 234, 0.1);
@@ -563,6 +568,8 @@ textarea.form-control.is-valid:focus,
   font-size: 0.85rem;
   font-weight: 600;
   color: #374151;
+  text-align: center;
+  width: 100%;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
