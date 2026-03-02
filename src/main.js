@@ -1,6 +1,19 @@
 import './styles/global.css';
 import { createApp } from './app.js';
 
+async function cleanupStaleServiceWorkers() {
+  if (!('serviceWorker' in navigator)) {
+    return;
+  }
+
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.unregister()));
+  } catch {
+    // Ignore cleanup errors to avoid blocking app startup.
+  }
+}
+
 // Preloader Management
 function hidePreloader() {
   const preloader = document.getElementById('preloader');
@@ -26,4 +39,6 @@ if (document.readyState === 'loading') {
 // Export for router navigation
 window.preloaderControl = { showPreloader, hidePreloader };
 
-createApp(document.querySelector('#app'));
+cleanupStaleServiceWorkers().finally(() => {
+  createApp(document.querySelector('#app'));
+});

@@ -8,6 +8,7 @@ import { renderCreateAdPage } from './pages/createAdPage/createAdPage.js';
 import { renderProfilePage } from './pages/profilePage/profilePage.js';
 import { renderUserAdsPage } from './pages/userAdsPage/userAdsPage.js';
 import { renderNotFoundPage } from './pages/notFoundPage/notFoundPage.js';
+import { getCurrentUser, isUserAdmin } from './services/authService.js';
 
 const router = new Navigo('/', { hash: false });
 const appName = 'Obyava';
@@ -25,17 +26,54 @@ function hideRoutePreloader() {
 }
 
 const routeMap = [
-  { path: '/', view: renderIndexPage, title: 'Home' },
-  { path: '/login', view: renderLoginPage, title: 'Login' },
-  { path: '/register', view: renderRegisterPage, title: 'Register' },
-  { path: '/dashboard', view: renderDashboardPage, title: 'Admin Dashboard' },
-  { path: '/profile', view: renderProfilePage, title: 'Profile' },
-  { path: '/profile/', view: renderProfilePage, title: 'Profile' },
-  { path: '/advertisement/:id', view: renderAdvertisementPage, title: 'Advertisement' },
-  { path: '/user/:id/ads', view: renderUserAdsPage, title: 'User Ads' },
-  { path: '/create-advertisement', view: renderCreateAdPage, title: 'Create Advertisement' },
-  { path: '/edit-advertisement/:id', view: renderCreateAdPage, title: 'Edit Advertisement' },
+  { path: '/', view: renderIndexPage, title: 'Home', access: 'public' },
+  { path: '/login', view: renderLoginPage, title: 'Login', access: 'guest' },
+  { path: '/register', view: renderRegisterPage, title: 'Register', access: 'guest' },
+  { path: '/dashboard', view: renderDashboardPage, title: 'Admin Dashboard', access: 'admin' },
+  { path: '/profile', view: renderProfilePage, title: 'Profile', access: 'auth' },
+  { path: '/profile/', view: renderProfilePage, title: 'Profile', access: 'auth' },
+  { path: '/advertisement/:id', view: renderAdvertisementPage, title: 'Advertisement', access: 'public' },
+  { path: '/user/:id/ads', view: renderUserAdsPage, title: 'User Ads', access: 'public' },
+  { path: '/create-advertisement', view: renderCreateAdPage, title: 'Create Advertisement', access: 'auth' },
+  { path: '/edit-advertisement/:id', view: renderCreateAdPage, title: 'Edit Advertisement', access: 'auth' },
 ];
+
+async function canAccessRoute(route) {
+  const routeAccess = route.access || 'public';
+
+  if (routeAccess === 'public') {
+    return { allowed: true };
+  }
+
+  const { user, error } = await getCurrentUser();
+
+  if (error) {
+    return { allowed: false, redirectTo: '/' };
+  }
+
+  if (routeAccess === 'guest') {
+    return user
+      ? { allowed: false, redirectTo: '/' }
+      : { allowed: true };
+  }
+
+  if (!user) {
+    return { allowed: false, redirectTo: '/' };
+  }
+
+  if (routeAccess === 'auth') {
+    return { allowed: true };
+  }
+
+  if (routeAccess === 'admin') {
+    const { isAdmin } = await isUserAdmin(user.id);
+    return isAdmin
+      ? { allowed: true }
+      : { allowed: false, redirectTo: '/' };
+  }
+
+  return { allowed: true };
+}
 
 export function navigate(path) {
   router.navigate(path);
@@ -62,6 +100,17 @@ export function setupRoutes(mainElement) {
       showRoutePreloader();
 
       const params = match?.data ?? {};
+      const access = await canAccessRoute(route);
+
+      if (requestId !== navigationRequestId) {
+        return;
+      }
+
+      if (!access.allowed) {
+        navigate(access.redirectTo || '/');
+        return;
+      }
+
       setPageTitle(resolveRouteTitle(route, params));
 
       try {

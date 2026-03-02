@@ -39,6 +39,35 @@
   color: #667eea;
 }
 
+.status-badge {
+  display: inline-block;
+  padding: 0.35rem 0.8rem;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.status-draft {
+  background: #e9ecef;
+  color: #6c757d;
+}
+
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-published {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-archived,
+.status-rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
 /* Modern load more button for user ads page */
 #sellerAdsLoadMoreBtn {
   border: none;

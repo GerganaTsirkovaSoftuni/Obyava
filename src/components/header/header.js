@@ -65,7 +65,6 @@ async function updateAdminNotificationBadge(headerElement) {
       notificationBadge.classList.add('hidden');
     }
   } catch (error) {
-    console.error('Error checking pending ads count:', error);
     notificationBadge.classList.add('hidden');
   }
 }

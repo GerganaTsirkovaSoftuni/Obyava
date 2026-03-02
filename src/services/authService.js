@@ -30,7 +30,7 @@ export async function signUp(email, password, metadata = {}) {
       data.user.identities.length === 0;
 
     if (isExistingUserSignUp) {
-      throw new Error('This email is already registered. Please use another email or sign in.');
+      throw new Error('User already created. Please use another email or sign in.');
     }
 
     // Create user profile in public.users table
@@ -50,11 +50,17 @@ export async function signUp(email, password, metadata = {}) {
       }
 
       // Assign default 'user' role in user_roles table
-      const { data: roleData } = await supabase
+      const { data: rolesData, error: roleError } = await supabase
         .from('roles')
         .select('id')
         .eq('name', 'user')
-        .single();
+        .limit(1);
+
+      if (roleError) {
+        console.warn('Could not resolve default user role:', roleError.message || roleError);
+      }
+
+      const roleData = rolesData?.[0] || null;
 
       if (roleData) {
         await supabase
@@ -87,6 +93,16 @@ export async function signIn(email, password) {
     });
 
     if (error) throw error;
+
+    const signedInUserId = data?.user?.id;
+    if (signedInUserId) {
+      const { profile } = await getUserProfile(signedInUserId);
+
+      if (!profile) {
+        await signOut();
+        throw new Error('This user email has been deleted. Create another account with another email.');
+      }
+    }
 
     return { data, error: null };
   } catch (error) {
@@ -167,9 +183,11 @@ export async function getUserProfile(userId) {
       .from('users')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     return { profile: data, error: null };
   } catch (error) {

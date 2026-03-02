@@ -66,7 +66,7 @@ function createUserAdCard(ad, navigate) {
           <p class="user-ad-price mb-2">${ad.price ? ad.price + ' EUR' : 'Negotiable'}</p>
           <div class="d-flex align-items-center gap-2 user-ad-status-wrap">
             <span class="status-badge status-${String(ad.status || '').toLowerCase()}">${statusTranslations[ad.status]}</span>
-            ${ad.status === 'Rejected' ? `<span class="rejection-indicator" title="Click to see reason"><i class="bi bi-exclamation-circle-fill"></i> Rejected</span>` : ''}
+            ${ad.status === 'Rejected' ? `<span class="rejection-indicator" title="Click to see reason"><i class="bi bi-exclamation-circle-fill"></i> Rejection Reason</span>` : ''}
           </div>
         </div>
         <div class="col-auto">
@@ -445,25 +445,6 @@ export async function renderProfilePage({ navigate }) {
     cancelProfileChangesBtn.disabled = !hasChanges;
   }
 
-  function clearProfileFormFields() {
-    if (!originalProfileValues) {
-      return;
-    }
-
-    const currentValues = getNormalizedProfileValues();
-
-    if (currentValues.fullName !== originalProfileValues.fullName) {
-      updateFullNameInput.value = '';
-    }
-
-    if (currentValues.phone !== originalProfileValues.phone) {
-      updatePhoneInput.value = '';
-    }
-
-    clearFormErrors(updateProfileForm);
-    updateProfileSaveButtonState();
-  }
-
   function updatePasswordSaveButtonState() {
     const hasChanges =
       currentPasswordInput.value.trim() !== '' ||
@@ -508,10 +489,17 @@ export async function renderProfilePage({ navigate }) {
     event.preventDefault();
   });
 
-  cancelProfileChangesBtn.addEventListener('click', (event) => {
+  cancelProfileChangesBtn.addEventListener('click', async (event) => {
     event.preventDefault();
     event.stopPropagation();
-    clearProfileFormFields();
+
+    try {
+      await syncProfileFormFromServer();
+      clearFormErrors(updateProfileForm);
+    } catch (error) {
+      console.error('Error reloading profile data:', error);
+      await alert('Error reloading profile data: ' + error.message, 'Error', 'error');
+    }
   });
 
   // Add real-time validation for password form
@@ -544,10 +532,20 @@ export async function renderProfilePage({ navigate }) {
     const formData = new FormData(updateProfileForm);
     
     try {
-      await updateUserProfile({
+      const { user: currentUser, error: currentUserError } = await getCurrentUser();
+
+      if (currentUserError || !currentUser) {
+        throw new Error('You are not logged in');
+      }
+
+      const { error: updateError } = await updateUserProfile(currentUser.id, {
         full_name: formData.get('fullName').trim(),
         phone: formData.get('phone').trim()
       });
+
+      if (updateError) {
+        throw updateError;
+      }
 
       originalProfileValues = {
         fullName: formData.get('fullName').trim(),

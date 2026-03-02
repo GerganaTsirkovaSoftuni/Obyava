@@ -18,7 +18,7 @@ npm install
 npm run dev
 ```
 
-The server will run at **http://localhost:5173**
+The server will run at **<http://localhost:5173>**
 
 💡 **Note**: You must run `npm install` before `npm run dev` or the project will not work!
 
@@ -41,7 +41,16 @@ The server will run at **http://localhost:5173**
 
 ### User Roles & Permissions
 
+#### Guest (Not Logged In)
+
+- ✅ Access `Home` (published ads only)
+- ✅ Access `Login`
+- ✅ Access `Register`
+- ✅ Access seller ads page (`/user/:id/ads`, published ads only)
+- ❌ Cannot access profile, create/edit ad pages, admin dashboard, or other protected routes
+
 #### Regular User
+
 - ✅ Create advertisements (Draft status)
 - ✅ View own advertisements (all statuses)
 - ✅ Update own advertisements (Draft only)
@@ -53,12 +62,19 @@ The server will run at **http://localhost:5173**
 - ❌ Cannot create as admin
 
 #### Admin User
+
 - ✅ View all pending advertisements (moderation queue)
 - ✅ Approve advertisements (Pending → Published)
 - ✅ View all advertisements across platform
 - ✅ Manage user roles
+- ✅ On single ad page, has the same moderation options as in admin dashboard (approve/reject/archive/delete based on ad status)
 - ❌ Cannot create advertisements
 - ❌ Cannot modify user advertisements
+
+### Authentication Edge Cases
+
+- Deleted-user protection: if an auth account exists but its `public.users` profile is deleted, login is blocked with a clear message and session is immediately signed out.
+- Registration duplicate-email handling returns a user-friendly message when account already exists.
 
 ---
 
@@ -67,6 +83,7 @@ The server will run at **http://localhost:5173**
 ### Technology Stack
 
 **Frontend:**
+
 - **Framework**: Vanilla JavaScript (ES6+)
 - **Build Tool**: Vite 5.4.21
 - **Router**: Navigo 8.11.1 (SPA routing)
@@ -74,6 +91,7 @@ The server will run at **http://localhost:5173**
 - **Development Server**: Local on port 5173
 
 **Backend:**
+
 - **Platform**: Supabase (PostgreSQL + Auth)
 - **Database**: PostgreSQL 14+ with RLS
 - **Authentication**: Supabase Auth (JWT-based)
@@ -81,6 +99,7 @@ The server will run at **http://localhost:5173**
 - **API Gateway**: Supabase Functions runtime
 
 **Infrastructure:**
+
 - **Hosting**: Supabase Cloud (PostgreSQL + Edge Functions)
 - **Authentication**: Supabase Auth (auth.users table)
 - **Storage**: Supabase Storage (image files)
@@ -88,7 +107,7 @@ The server will run at **http://localhost:5173**
 
 ### Architecture Diagram
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │                    Frontend (Vite + Vanilla JS)          │
 │           Running on localhost:5173                      │
@@ -131,7 +150,7 @@ The server will run at **http://localhost:5173**
 
 ### Entity Relationship Diagram
 
-```
+```text
 ┌──────────────┐
 │    roles     │
 ├──────────────┤
@@ -212,6 +231,17 @@ The server will run at **http://localhost:5173**
  │ archived_at                  │
  └──────────────────────────────┘
 
+ ┌──────────────────────────────┐
+ │ rejected_advertisements       │
+ ├──────────────────────────────┤
+ │ advertisement_uuid (PK/FK)   │
+ │ title                        │
+ │ description                  │
+ │ owner_id (FK)                │
+ │ rejection_date               │
+ │ rejection_reason             │
+ └──────────────────────────────┘
+
 Legend:
 PK = Primary Key
 FK = Foreign Key
@@ -229,6 +259,7 @@ UK = Unique Key
 | `advertisements` | Main advertisement listings | id, uuid, title, description, price, status, location |
 | `advertisement_images` | Images for each advertisement | uuid, advertisement_uuid, position, file_path |
 | `advertisement_archive` | Immutable snapshots of archived ads | advertisement_uuid, title, description, owner_id |
+| `rejected_advertisements` | Tracks rejected ads and rejection reasons | advertisement_uuid, owner_id, rejection_reason, rejection_date |
 
 ### Key Database Features
 
@@ -250,7 +281,7 @@ UK = Unique Key
 - **Node.js**: v18+ (check with `node --version`)
 - **npm**: v8+ (check with `npm --version`)
 - **Git**: For version control
-- **Supabase Account**: Free tier at https://supabase.com
+- **Supabase Account**: Free tier at <https://supabase.com>
 
 ### Step 1: Clone Repository
 
@@ -268,6 +299,7 @@ npm install
 ```
 
 This installs:
+
 - `vite` - Build tool
 - `navigo` - Router library
 
@@ -283,6 +315,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 Get these values from your Supabase project dashboard:
+
 1. Go to Project Settings > API
 2. Copy `Project URL` and `anon` key
 
@@ -294,7 +327,7 @@ Get these values from your Supabase project dashboard:
 npm run dev
 ```
 
-Server runs on: **http://localhost:5173**
+Server runs on: **<http://localhost:5173>**
 
 The development server will automatically open in your browser and support hot module replacement (HMR) for instant updates during development.
 
@@ -331,21 +364,37 @@ node --version
 npm --version
 ```
 
+### Cache Troubleshooting (Regular Browser vs Incognito)
+
+If ads are visible in Incognito but missing in a regular browser window, this is usually stale browser cache.
+
+1. Open DevTools (`F12`) → **Application** → **Service Workers** and click **Unregister** if any worker is listed.
+2. In DevTools → **Network**, enable **Disable cache** and hard refresh with `Ctrl+Shift+R`.
+3. If needed, clear site data (cookies + local/session storage) for the app domain and reload.
+
+For production deploys on Netlify, this repo includes [public/_headers](public/_headers) to reduce stale app-shell caching.
+
 ### Access Test Accounts
 
 **Admin Account:**
+
 - Email: `adminuser@gmail.com` | Password: `Test1234`
 
-**Regular User Account:**
-- Email: `user@gmail.com` | Password: `Test1234`
+**Regular User Accounts:**
 
-**Link to the project**
-https://melodious-trifle-b87c15.netlify.app
+- Email: `steve@gmail.com` | Password: `pass123`
+- Email: `maria@gmail.com` | Password: `pass123` _(deleted user; use to test deleted-account login/register behavior)_
+- Email: `peter@gmail.com` | Password: `pass123`
+
+### Link to the project
+
+<https://melodious-trifle-b87c15.netlify.app>
+
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 Obyava/
 ├── src/                              # Frontend source code
 │   ├── main.js                       # App entry point
@@ -353,7 +402,7 @@ Obyava/
 │   ├── router.js                     # Route definitions & navigation
 │   ├── styles/
 │   │   └── global.css                # Global styles & layout
-│   ├── components/
+│   ├── components/                   # Reusable UI components
 │   │   ├── header/
 │   │   │   ├── header.html           # Header markup
 │   │   │   ├── header.css            # Header styles
@@ -362,24 +411,39 @@ Obyava/
 │   │       ├── footer.html           # Footer markup
 │   │       ├── footer.css            # Footer styles
 │   │       └── footer.js             # Footer component logic
+│   ├── services/                     # Business logic & API calls
+│   │   ├── supabaseClient.js         # Supabase initialization
+│   │   ├── authService.js            # Authentication logic
+│   │   ├── adsService.js             # Advertisement CRUD operations
+│   │   ├── userService.js            # User profile operations
+│   │   ├── storageService.js         # File upload/download logic
+│   │   ├── validationService.js      # Form validation utilities
+│   │   ├── sanitizeService.js        # Data sanitization
+│   │   └── modalService.js           # Modal management
 │   └── pages/                        # Page components
-│       ├── index/                    # Home page
-│       │   ├── index.html
-│       │   ├── index.css
-│       │   └── index.js
-│       └── dashboardPage/            # User dashboard
-│           ├── dashboardPage.html
-│           ├── dashboardPage.css
-│           └── dashboardPage.js
+│       ├── index/                    # Home/landing page
+│       ├── loginPage/                # Login page
+│       ├── registerPage/             # Registration page
+│       ├── dashboardPage/            # User dashboard
+│       ├── advertisementPage/        # View single advertisement
+│       ├── createAdPage/             # Create new advertisement
+│       ├── userAdsPage/              # User's own advertisements
+│       ├── profilePage/              # User profile management
+│       └── notFoundPage/             # 404 error page
 │
 ├── supabase/                         # Backend configuration
-│   ├── migrations/                   # Database migrations
+│   ├── migrations/                   # Database migrations (14 files)
 │   │   ├── 20260221_000001_init_ads_schema.sql
 │   │   ├── 20260221_000002_profiles_status_archive_indexes.sql
-│   │   └── 20260221_000004_rename_profiles_to_users.sql
+│   │   ├── 20260221_000004_rename_profiles_to_users.sql
+│   │   ├── 20260222_000005_create_users_table_and_fix_fk.sql
+│   │   ├── 20260226_000009_add_item_condition_and_drop_avatar_url.sql
+│   │   ├── 20260227_000010_add_rejected_ads.sql
+│   │   └── ... (8 additional migrations)
 │   └── seed.sql                      # Database seed data
 │
 ├── index.html                        # Main HTML entry
+├── .copilot-instructions.md          # AI dev agent guidelines
 ├── vite.config.js                    # Vite configuration
 ├── package.json                      # Dependencies & scripts
 ├── .gitignore                        # Git ignore rules
@@ -395,18 +459,31 @@ Obyava/
 | `src/app.js` | Creates layout structure (header/main/footer) |
 | `src/router.js` | Route definitions, page mapping, navigation helpers |
 | `src/components/header/header.js` | Header component with navigation |
-| `src/pages/index/index.js` | Homepage rendering |
-| `src/pages/dashboardPage/dashboardPage.js` | User dashboard with ads |
+| `src/pages/index/index.js` | Homepage/landing page |
+| `src/pages/loginPage/loginPage.js` | Login functionality |
+| `src/pages/registerPage/registerPage.js` | Registration functionality |
+| `src/pages/dashboardPage/dashboardPage.js` | User dashboard with ad statistics |
+| `src/pages/advertisementPage/advertisementPage.js` | Single advertisement details view |
+| `src/pages/profilePage/profilePage.js` | User profile management and settings |
+| `src/pages/userAdsPage/userAdsPage.js` | User's own advertisements listing |
+| `src/services/supabaseClient.js` | Supabase client initialization |
+| `src/services/authService.js` | User authentication and authorization |
+| `src/services/adsService.js` | Advertisement CRUD and management operations |
+| `src/services/userService.js` | User profile and user data operations |
+| `src/services/storageService.js` | Supabase Storage file upload/download |
+| `src/services/validationService.js` | Form and data validation utilities |
+| `src/services/sanitizeService.js` | XSS prevention and data sanitization |
+| `src/services/modalService.js` | Modal dialog management and state |
 | `vite.config.js` | Vite build configuration (port 5173) |
-| `package.json` | Dependencies: vite, navigo, npm scripts |
-| `supabase/migrations/*.sql` | Database schema creation & modifications |
-| `supabase/seed.sql` | Test data: users, categories, ads |
+| `package.json` | Dependencies and npm scripts |
+| `supabase/migrations/*.sql` | Database schema creation & modifications (14 files) |
+| `supabase/seed.sql` | Test data: users, categories, advertisements |
 | `API_DOCUMENTATION.md` | Complete API endpoint reference |
-| `index.html` | HTML template with Vite script |
+| `index.html` | HTML template with Vite script entry point |
 
 ### Important Folders
 
-```
+```text
 src/
 ├── components/     Dev modular UI components (header, footer, cards)
 ├── pages/          Page-specific components with routing
@@ -425,7 +502,9 @@ node_modules/       (Generated) Installed dependencies
 ## 🔧 Configuration Files
 
 ### `vite.config.js`
+
 Vite build configuration:
+
 ```javascript
 {
   server: { port: 5173 },
@@ -434,12 +513,15 @@ Vite build configuration:
 ```
 
 ### `package.json`
+
 Dependencies and npm scripts:
+
 - `vite`: Build tool
 - `navigo`: SPA router
 - Scripts: `dev`, `build`, `preview`
 
 ### Environment Variables (`.env.local`)
+
 ```env
 VITE_SUPABASE_URL=<your-project-url>
 VITE_SUPABASE_ANON_KEY=<your-anon-key>
@@ -449,7 +531,7 @@ VITE_SUPABASE_ANON_KEY=<your-anon-key>
 
 ## 📊 Database Migrations
 
-All database changes are version-controlled in `supabase/migrations/`:
+All database changes are version-controlled in `supabase/migrations/` (14 total migrations):
 
 1. **20260221_000001_init_ads_schema.sql**
    - Initial schema: roles, user_roles, categories, advertisements, advertisement_images, advertisement_archive
@@ -465,7 +547,24 @@ All database changes are version-controlled in `supabase/migrations/`:
    - Renames `profiles` → `users` table
    - Updates constraints, triggers, policies
 
-Apply migrations via Supabase dashboard or CLI:
+4. **20260222_000005_create_users_table_and_fix_fk.sql**
+   - Recreates users table with proper schema
+   - Fixes advertisements foreign key references
+
+5. **20260226_000009_add_item_condition_and_drop_avatar_url.sql**
+   - Adds item condition field
+   - Removes avatar_url column
+
+6. **20260227_000010_add_rejected_ads.sql**
+   - Creates `rejected_advertisements` table for tracking rejected listings
+   - RLS policies for admin and user access
+
+7-14. **Additional migrations**
+
+- Storage bucket configuration
+- RLS policy refinements
+- Admin role and deletion policy improvements
+
 ```bash
 supabase db push
 ```
@@ -475,21 +574,25 @@ supabase db push
 ## 🔐 Security Features
 
 ### Row-Level Security (RLS)
+
 - All tables protected with policies
 - Users can only modify their own data
 - Admins have elevated privileges
 
 ### Authentication
+
 - JWT-based authentication via Supabase Auth
 - Secure password hashing
 - Session management
 
 ### Data Validation
+
 - Server-side validation in Edge Functions
 - Check constraints on database columns
 - Enum type enforcement for statuses
 
 ### Authorization
+
 - Role-based access control (user vs admin)
 - Edge Functions verify user roles
 - RLS policies prevent unauthorized access
@@ -558,6 +661,7 @@ This project is licensed under the MIT License - see LICENSE file for details.
 ## 📞 Support
 
 For questions or issues:
+
 1. Check the API documentation: `API_DOCUMENTATION.md`
 2. Review database schema diagrams above
 3. Check `.copilot-instructions.md` for development guidelines

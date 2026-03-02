@@ -304,6 +304,11 @@
   color: #721c24;
 }
 
+.status-rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
 @media (max-width: 992px) {
   .ad-main-image {
     height: 350px;

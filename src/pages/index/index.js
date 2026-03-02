@@ -176,8 +176,8 @@ export async function renderIndexPage({ navigate }) {
       hasMoreAds = false;
 
       emptyState.classList.add('d-none');
-      renderAdsSkeleton(PAGE_SIZE);
       paginationWrap.classList.add('d-none');
+      adsGrid.innerHTML = '';
 
       const adsChunk = await loadAdvertisements(searchQuery, category, currentOffset, PAGE_SIZE + 1);
       const visibleChunk = adsChunk.slice(0, PAGE_SIZE);

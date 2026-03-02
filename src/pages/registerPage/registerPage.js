@@ -78,7 +78,7 @@ export function renderRegisterPage({ navigate }) {
       if (error) throw error;
       
       // Success
-      successMessage.textContent = 'Registration successful! Please check your email to confirm your account.';
+      successMessage.textContent = 'Registration successful! You will be redirected to the login page.';
       successMessage.classList.remove('d-none');
       
       // Clear form

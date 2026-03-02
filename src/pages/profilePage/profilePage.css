@@ -110,13 +110,42 @@
   transform: translateY(-1px);
 }
 
+.profile-save-btn:not(:disabled),
+.profile-save-btn:not(:disabled):hover,
+.profile-save-btn:not(:disabled):active,
+.profile-save-btn:not(:disabled):focus,
+.profile-save-btn:not(:disabled):focus-visible {
+  color: #ffffff !important;
+}
+
 .profile-save-btn:disabled {
   background: #e5e7eb;
-  color: #374151;
+  color: #374151 !important;
   border-color: #d1d5db;
   box-shadow: none;
   cursor: not-allowed;
   opacity: 1;
+}
+
+.profile-save-btn:disabled i,
+.profile-save-btn:disabled span {
+  color: #374151 !important;
+}
+
+#updateProfileSubmitBtn:disabled,
+#cancelProfileChangesBtn:disabled {
+  background: #e5e7eb !important;
+  color: #9ca3af !important;
+  border-color: #d1d5db !important;
+  box-shadow: none !important;
+  opacity: 1;
+}
+
+#updateProfileSubmitBtn:disabled i,
+#updateProfileSubmitBtn:disabled span,
+#cancelProfileChangesBtn:disabled i,
+#cancelProfileChangesBtn:disabled span {
+  color: #9ca3af !important;
 }
 
 .user-ad-card {

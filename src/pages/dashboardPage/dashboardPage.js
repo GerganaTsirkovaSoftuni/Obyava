@@ -381,15 +381,20 @@ export async function renderDashboardPage({ navigate }) {
             return;
           }
 
-          const roleConfirmed = await confirm('Change this user role?', 'Change User Role');
+          // Find user to get current role
+          const users = await loadUsers();
+          const user = users.find(u => u.id === userId);
+          if (!user) {
+            await alert('User not found', 'Error', 'error');
+            return;
+          }
+
+          const roleConfirmationMessage = user.role === 'admin'
+            ? 'Are you sure you want to make this user a regular user?'
+            : 'Are you sure you want to make this user admin?';
+
+          const roleConfirmed = await confirm(roleConfirmationMessage, 'Change User Role');
           if (roleConfirmed) {
-            // Find user to get current role
-            const users = await loadUsers();
-            const user = users.find(u => u.id === userId);
-            if (!user) {
-              await alert('User not found', 'Error', 'error');
-              return;
-            }
             const newRole = user.role === 'admin' ? 'user' : 'admin';
             await updateUserRole(userId, newRole);
             await alert('Role updated', 'Success', 'success');
@@ -405,7 +410,7 @@ export async function renderDashboardPage({ navigate }) {
             return;
           }
 
-          const deleteUserConfirmed = await confirm('WARNING: Deleting this user will also remove all their advertisements. Are you sure?', 'Delete User');
+          const deleteUserConfirmed = await confirm('WARNING: Deleting this user is irreversible and will also permanently remove all their advertisements. Are you sure you want to proceed?', 'Delete User', { variant: 'warning' });
           if (deleteUserConfirmed) {
             await deleteUser(userId);
             await alert('User deleted', 'Success', 'success');

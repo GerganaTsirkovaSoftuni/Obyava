@@ -123,15 +123,25 @@ async function queryPublishedAds(client, filters = {}) {
     return { data, error };
   }
 
-  // Filter out rejected ads in JavaScript
-  const { data: rejectedAds } = await client
-    .from('rejected_advertisements')
-    .select('advertisement_uuid');
-  
-  const rejectedUuids = new Set((rejectedAds || []).map(r => r.advertisement_uuid));
-  const filteredData = data.filter(ad => !rejectedUuids.has(ad.uuid));
-  
-  return { data: filteredData, error };
+  // Filter out rejected ads in JavaScript (best effort).
+  // If this auxiliary query is blocked by RLS or returns an unexpected
+  // superset, never hide all published advertisements.
+  try {
+    const { data: rejectedAds } = await client
+      .from('rejected_advertisements')
+      .select('advertisement_uuid');
+
+    const rejectedUuids = new Set((rejectedAds || []).map((row) => row.advertisement_uuid));
+    const filteredData = data.filter((ad) => !rejectedUuids.has(ad.uuid));
+
+    if (data.length > 0 && filteredData.length === 0) {
+      return { data, error };
+    }
+
+    return { data: filteredData, error };
+  } catch {
+    return { data, error };
+  }
 }
 
 /**
@@ -546,6 +556,10 @@ export async function getAllAds(filters = {}) {
     `)
     .order('created_at', { ascending: false});
 
+  if (filters.owner_id) {
+    query = query.eq('owner_id', filters.owner_id);
+  }
+
   if (filters.status && filters.status !== 'Rejected') {
     query = query.eq('status', filters.status);
   }
@@ -708,18 +722,15 @@ export async function getRejectionReason(uuid) {
       .from('rejected_advertisements')
       .select('rejection_reason, rejection_date')
       .eq('advertisement_uuid', uuid)
-      .single();
+      .order('rejection_date', { ascending: false })
+      .limit(1);
 
     if (error) {
-      // PGRST116 = no rows found, which is expected
-      // 406 = insufficient permissions/data, also expected for non-owners
-      if (error.code !== 'PGRST116') {
-        console.warn('Warning fetching rejection reason:', error.code);
-      }
+      console.warn('Warning fetching rejection reason:', error.code || error.message);
       return null;
     }
 
-    return data || null;
+    return (data && data.length > 0) ? data[0] : null;
   } catch (err) {
     // Silently handle any network or permission errors
     return null;
@@ -731,11 +742,22 @@ export async function getRejectionReason(uuid) {
  * @returns {Promise<Array>}
  */
 export async function getCategories() {
-  const { data, error } = await supabase
+  let { data, error } = await supabasePublic
     .from('categories')
     .select('*')
     .eq('is_active', true)
     .order('name');
+
+  if (error) {
+    const fallbackResult = await supabase
+      .from('categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('name');
+
+    data = fallbackResult.data;
+    error = fallbackResult.error;
+  }
 
   if (error) {
     console.error('Get categories error:', error);
@@ -746,17 +768,31 @@ export async function getCategories() {
 }
 
 export async function getPendingAdsCount() {
-  const { count, error } = await supabase
-    .from('advertisements')
-    .select('uuid', { count: 'exact', head: true })
-    .eq('status', 'Pending');
+  try {
+    const { count, error } = await supabase
+      .from('advertisements')
+      .select('uuid', { count: 'exact', head: true })
+      .eq('status', 'Pending');
 
-  if (error) {
-    console.error('Get pending ads count error:', error);
-    throw new Error('Error loading pending ads count: ' + error.message);
+    if (error) {
+      const message = String(error.message || '');
+
+      if (message.toLowerCase().includes('networkerror') || message.toLowerCase().includes('failed to fetch')) {
+        return 0;
+      }
+
+      throw new Error('Error loading pending ads count: ' + message);
+    }
+
+    return count || 0;
+  } catch (error) {
+    const message = String(error?.message || '');
+    if (message.toLowerCase().includes('networkerror') || message.toLowerCase().includes('failed to fetch')) {
+      return 0;
+    }
+
+    throw error;
   }
-
-  return count || 0;
 }
 
 /**

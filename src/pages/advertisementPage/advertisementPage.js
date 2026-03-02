@@ -2,13 +2,14 @@ import './advertisementPage.css';
 import template from './advertisementPage.html?raw';
 import { getAdvertisementById, deleteAdvertisement, archiveAdvertisement, submitForReview, approveAdvertisement, rejectAdvertisement, getRejectionReason } from '../../services/adsService.js';
 import { getSession, isUserAdmin } from '../../services/authService.js';
-import { confirm, alert } from '../../services/modalService.js';
+import { confirm, alert, promptText } from '../../services/modalService.js';
 
 const statusTranslations = {
   'Draft': 'Draft',
   'Pending': 'Pending Approval',
   'Published': 'Published',
-  'Archived': 'Archived'
+  'Archived': 'Archived',
+  'Rejected': 'Rejected'
 };
 
 async function loadAdvertisement(adUuid) {
@@ -83,15 +84,6 @@ export async function renderAdvertisementPage({ navigate, params }) {
       adCondition.textContent = ad.item_condition === 'new' ? 'Condition: New' : 'Condition: Used';
       adLocation.textContent = ad.location;
       adDate.textContent = new Date(ad.created_at).toLocaleDateString('en-US');
-      
-      // Status badge
-      const statusClass = `status-${String(ad.status || '').toLowerCase()}`;
-      const statusLabel = statusTranslations[ad.status] || ad.status || 'Unknown';
-      adStatus.innerHTML = `
-        <span class="status-badge ${statusClass}">
-          Status: ${statusLabel}
-        </span>
-      `;
 
       // Seller info
       sellerName.textContent = ad.seller.full_name;
@@ -125,15 +117,24 @@ export async function renderAdvertisementPage({ navigate, params }) {
       const isAdmin = session && currentUserId ? (await isUserAdmin(currentUserId)).isAdmin : false;
       const isOwner = currentUserId === ad.seller.id;
       
-      // Only fetch rejection reason if owner (RLS policies prevent admins from viewing other users' rejection reasons)
+      // Fetch rejection reason for owner/admin to derive effective status on details page
       let isRejectedAd = false;
-      if (isOwner) {
+      if (isOwner || isAdmin) {
         try {
           isRejectedAd = Boolean(await getRejectionReason(ad.uuid));
         } catch (err) {
           console.warn('Could not fetch rejection reason:', err);
         }
       }
+
+      const effectiveStatus = isRejectedAd ? 'Rejected' : ad.status;
+      const statusClass = `status-${String(effectiveStatus || '').toLowerCase()}`;
+      const statusLabel = statusTranslations[effectiveStatus] || effectiveStatus || 'Unknown';
+      adStatus.innerHTML = `
+        <span class="status-badge ${statusClass}">
+          Status: ${statusLabel}
+        </span>
+      `;
 
       const canShowSellerContactActions = !isOwner && !isAdmin;
 
@@ -175,7 +176,7 @@ export async function renderAdvertisementPage({ navigate, params }) {
         moreSellerAdsSection.classList.add('d-none');
       }
 
-      if (isOwner && ad.status !== 'Archived') {
+      if (isOwner && ad.status !== 'Archived' && !isRejectedAd) {
         ownerActions.classList.remove('d-none');
         
         // Show appropriate action buttons based on status
@@ -231,16 +232,21 @@ export async function renderAdvertisementPage({ navigate, params }) {
         });
       }
 
-      const canShowAdminActions = isAdmin && ad.status !== 'Archived';
+      const canShowAdminActions = isAdmin;
 
       if (canShowAdminActions) {
         adminActions.classList.remove('d-none');
 
         const approveBtn = section.querySelector('#approveBtn');
         const rejectBtn = section.querySelector('#rejectBtn');
-        const canApprove = ad.status === 'Pending' && !isRejectedAd;
-        approveBtn?.classList.toggle('d-none', !canApprove);
-        rejectBtn?.classList.toggle('d-none', ad.status === 'Published');
+        const adminArchiveBtn = section.querySelector('#adminArchiveBtn');
+        const adminDeleteBtn = section.querySelector('#adminDeleteBtn');
+
+        const canReview = ad.status === 'Pending' && !isRejectedAd;
+        approveBtn?.classList.toggle('d-none', !canReview);
+        rejectBtn?.classList.toggle('d-none', !canReview);
+        adminArchiveBtn?.classList.toggle('d-none', ad.status === 'Archived');
+        adminDeleteBtn?.classList.remove('d-none');
 
         section.querySelector('#approveBtn')?.addEventListener('click', async () => {
           try {
@@ -254,7 +260,11 @@ export async function renderAdvertisementPage({ navigate, params }) {
         });
 
         section.querySelector('#rejectBtn')?.addEventListener('click', async () => {
-          const reason = prompt('Reason for rejection:');
+          const reason = await promptText(
+            'Please provide a reason for rejecting this advertisement.',
+            'Reject Advertisement',
+            { placeholder: 'Enter rejection reason...', maxLength: 500 }
+          );
           if (reason) {
             try {
               await rejectAdvertisement(ad.uuid, reason);
@@ -277,6 +287,20 @@ export async function renderAdvertisementPage({ navigate, params }) {
             } catch (error) {
               console.error('Error archiving ad:', error);
               await alert('Error archiving advertisement: ' + error.message, 'Error', 'error');
+            }
+          }
+        });
+
+        section.querySelector('#adminDeleteBtn')?.addEventListener('click', async () => {
+          const confirmed = await confirm('WARNING: Deletion is irreversible. Are you sure?', 'Delete Advertisement');
+          if (confirmed) {
+            try {
+              await deleteAdvertisement(ad.uuid);
+              await alert('Advertisement deleted', 'Success', 'success');
+              navigate('/dashboard');
+            } catch (error) {
+              console.error('Error deleting ad:', error);
+              await alert('Error deleting advertisement: ' + error.message, 'Error', 'error');
             }
           }
         });
