@@ -139,8 +139,8 @@ The server will run at **<http://localhost:5173>**
 ┌─────────────────────────────────────────────────────────┐
 │            Supabase Auth (auth.users)                    │
 │         JWT Token Management                             │
-│  • Regular users: johndoe@gmail.com, maria@gmail.com   │
-│  • Admin user: admin@gmail.com                          │
+│  • Regular users: steve@gmail.com, peter@gmail.com      │
+│  • Admin user: adminuser@gmail.com                      │
 └─────────────────────────────────────────────────────────┘
 ```
 
